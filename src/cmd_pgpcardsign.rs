@@ -13,6 +13,24 @@ use crate::util::base64_encode;
 
 const BUFF_SIZE: usize = 512 * 1024;
 
+#[derive(Debug, Clone, Copy)]
+enum SignAlgo {
+    RSA,
+    ECDSA,
+    EdDSA,
+}
+
+impl SignAlgo {
+    fn from_str(algo: &str) -> XResult<Self> {
+        match algo {
+            "rsa" => Ok(Self::RSA),
+            "ecdsa" => Ok(Self::ECDSA),
+            "eddsa" => Ok(Self::EdDSA),
+            _ => return simple_error!("Unknown algo: {}", algo),
+        }
+    }
+}
+
 pub struct CommandImpl;
 
 impl Command for CommandImpl {
@@ -29,6 +47,7 @@ impl Command for CommandImpl {
             .arg(Arg::with_name("use-sha256").long("use-sha256").help("Use SHA256 for file in"))
             .arg(Arg::with_name("use-sha384").long("use-sha384").help("Use SHA384 for file in"))
             .arg(Arg::with_name("use-sha512").long("use-sha512").help("Use SHA512 for file in"))
+            .arg(Arg::with_name("algo").long("algo").help("Algorithm, rsa, ecdsa, eddsa"))
             .arg(Arg::with_name("json").long("json").help("JSON output"))
     }
 
@@ -44,6 +63,9 @@ impl Command for CommandImpl {
         let mut sha384 = sub_arg_matches.value_of("sha384").map(|s| s.to_string());
         let mut sha512 = sub_arg_matches.value_of("sha512").map(|s| s.to_string());
         let file_in_opt = sub_arg_matches.value_of("in");
+
+        let algo = sub_arg_matches.value_of("algo").unwrap_or("rsa").to_lowercase();
+        let algo = SignAlgo::from_str(&algo)?;
 
         let mut json = BTreeMap::new();
         if let Some(file_in) = file_in_opt {
@@ -88,7 +110,11 @@ impl Command for CommandImpl {
             let sha256_hex = crate::digest::copy_sha256(&sha256_hex)?;
             opt_result!(trans.verify_pw1_sign(pin.as_ref()), "User sign pin verify failed: {}");
             success!("User sign pin verify success!");
-            let sig = trans.signature_for_hash(Hash::SHA256(sha256_hex))?;
+            let sig = match algo {
+                SignAlgo::RSA => trans.signature_for_hash(Hash::SHA256(sha256_hex))?,
+                SignAlgo::ECDSA => trans.signature_for_hash(Hash::ECDSA(&sha256_hex))?,
+                SignAlgo::EdDSA => trans.signature_for_hash(Hash::EdDSA(&sha256_hex))?,
+            };
             success!("SHA256 signature HEX: {}", hex::encode(&sig));
             success!("SHA256 signature base64: {}", base64_encode(&sig));
             if json_output {
@@ -103,7 +129,11 @@ impl Command for CommandImpl {
             let sha384_hex = crate::digest::copy_sha384(&sha384_hex)?;
             opt_result!(trans.verify_pw1_sign(pin.as_ref()), "User sign pin verify failed: {}");
             success!("User sign pin verify success!");
-            let sig = trans.signature_for_hash(Hash::SHA384(sha384_hex))?;
+            let sig = match algo {
+                SignAlgo::RSA => trans.signature_for_hash(Hash::SHA384(sha384_hex))?,
+                SignAlgo::ECDSA => trans.signature_for_hash(Hash::ECDSA(&sha384_hex))?,
+                SignAlgo::EdDSA => trans.signature_for_hash(Hash::EdDSA(&sha384_hex))?,
+            };
             success!("SHA384 signature HEX: {}", hex::encode(&sig));
             success!("SHA384 signature base64: {}", base64_encode(&sig));
             if json_output {
@@ -118,7 +148,11 @@ impl Command for CommandImpl {
             let sha512_hex = crate::digest::copy_sha512(&sha512_hex)?;
             opt_result!(trans.verify_pw1_sign(pin.as_ref()), "User sign pin verify failed: {}");
             success!("User sign pin verify success!");
-            let sig = trans.signature_for_hash(Hash::SHA512(sha512_hex))?;
+            let sig = match algo {
+                SignAlgo::RSA => trans.signature_for_hash(Hash::SHA512(sha512_hex))?,
+                SignAlgo::ECDSA => trans.signature_for_hash(Hash::ECDSA(&sha512_hex))?,
+                SignAlgo::EdDSA => trans.signature_for_hash(Hash::EdDSA(&sha512_hex))?,
+            };
             success!("SHA512 signature HEX: {}", hex::encode(&sig));
             success!("SHA512 signature base64: {}", base64_encode(&sig));
             if json_output {

@@ -3,10 +3,26 @@ use std::collections::BTreeMap;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use openpgp_card::crypto_data::Cryptogram;
 use openpgp_card::OpenPgp;
+use rust_util::{util_msg, XResult};
 use rust_util::util_clap::{Command, CommandError};
-use rust_util::util_msg;
 
 use crate::util::{base64_decode, base64_encode};
+
+#[derive(Debug, Clone, Copy)]
+enum EncryptAlgo {
+    RSA,
+    ECDH,
+}
+
+impl EncryptAlgo {
+    fn from_str(algo: &str) -> XResult<Self> {
+        match algo {
+            "rsa" => Ok(Self::RSA),
+            "x25519" | "ecdh" => Ok(Self::ECDH),
+            _ => return simple_error!("Unknown algo: {}", algo),
+        }
+    }
+}
 
 pub struct CommandImpl;
 
@@ -35,6 +51,7 @@ impl Command for CommandImpl {
         let cipher_base64 = sub_arg_matches.value_of("cipher-base64");
 
         let algo = sub_arg_matches.value_of("algo").unwrap_or("rsa").to_lowercase();
+        let algo = EncryptAlgo::from_str(&algo)?;
 
         let cipher_bytes = if let Some(cipher) = cipher {
             opt_result!(hex::decode(cipher), "Decode cipher failed: {}")
@@ -51,10 +68,9 @@ impl Command for CommandImpl {
         opt_result!(trans.verify_pw1_user(pin.as_ref()), "User pin verify failed: {}");
         success!("User pin verify success!");
 
-        let text = match algo.as_str() {
-            "rsa" => trans.decipher(Cryptogram::RSA(&cipher_bytes))?,
-            "x25519" | "ecdh" => trans.decipher(Cryptogram::ECDH(&cipher_bytes))?,
-            _ => return simple_error!("Unknown algo: {}", &algo),
+        let text = match algo {
+            EncryptAlgo::RSA => trans.decipher(Cryptogram::RSA(&cipher_bytes))?,
+            EncryptAlgo::ECDH => trans.decipher(Cryptogram::ECDH(&cipher_bytes))?,
         };
         // let text = trans.decipher(Cryptogram::RSA(&cipher_bytes))?;
         success!("Clear text HEX: {}", hex::encode(&text));
