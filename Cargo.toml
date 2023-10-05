@@ -1,0 +1,42 @@
+[package]
+name = "card-cli"
+version = "1.7.4"
+authors = ["Hatter Jiang <jht5945@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+authenticator = "0.3"
+clap = "2.34"
+rust_util = { version = "0.6", features = ["use_clap"] }
+digest = "0.10"
+sha1 = "0.10"
+sha2 = "0.10"
+rand = "0.8"
+base64 = "0.21"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+hex = "0.4"
+u2f = "0.2"
+openpgp-card = "0.3"
+openpgp-card-pcsc = "0.3"
+openpgp-card-sequoia = "0.1"
+sequoia-openpgp = "1.13"
+chrono = "0.4"
+simpledateformat = "0.1"
+ring = "0.16"
+openssl = "0.10"
+pem = "3.0"
+yubikey = { version = "0.8", features = ["untested"] }
+yubico_manager = "0.9"
+x509 = "0.2"
+x509-parser = "0.15"
+ssh-agent = { version = "0.2", features = ["agent"] }
+p256 = { version = "0.13", features = ["pem", "ecdh"] }
+spki = { version = "0.7", features = ["pem"] }
+tabled = "0.14.0"
+#lazy_static = "1.4.0"
+#ssh-key = "0.4.0"
+#ctap-hid-fido2 = "2.1.3"
+
+[patch.crates-io]
+u2f = { git = "https://github.com/jht5945/u2f-rs.git" }
