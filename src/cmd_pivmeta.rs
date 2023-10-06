@@ -6,11 +6,11 @@ use rust_util::util_clap::{Command, CommandError};
 use rust_util::util_msg;
 use rust_util::util_msg::MessageType;
 use x509_parser::parse_x509_certificate;
-use yubikey::{Key, PinPolicy, TouchPolicy, YubiKey};
-use yubikey::piv::{AlgorithmId, ManagementAlgorithmId, metadata, Origin};
+use yubikey::{Key, YubiKey};
+use yubikey::piv::{AlgorithmId, metadata, Origin};
 
 use crate::pivutil;
-use crate::pivutil::{get_algorithm_id, slot_equals};
+use crate::pivutil::{get_algorithm_id, slot_equals, ToStr};
 use crate::pkiutil::bytes_to_pem;
 
 pub struct CommandImpl;
@@ -39,14 +39,7 @@ impl Command for CommandImpl {
         json.insert("slot", slot.to_string());
         if let Ok(meta) = metadata(&mut yk, slot_id) {
             debugging!("PIV meta: {:?}", meta);
-            let algorithm_str = match meta.algorithm {
-                ManagementAlgorithmId::PinPuk => "pin_puk",
-                ManagementAlgorithmId::ThreeDes => "three_des",
-                ManagementAlgorithmId::Asymmetric(AlgorithmId::Rsa1024) => "rsa1024",
-                ManagementAlgorithmId::Asymmetric(AlgorithmId::Rsa2048) => "rsa2048",
-                ManagementAlgorithmId::Asymmetric(AlgorithmId::EccP256) => "p256",
-                ManagementAlgorithmId::Asymmetric(AlgorithmId::EccP384) => "p384",
-            };
+            let algorithm_str = meta.algorithm.to_str();
             if json_output {
                 json.insert("algorithm", algorithm_str.to_string());
             } else {
@@ -54,18 +47,8 @@ impl Command for CommandImpl {
             }
 
             if let Some((pin_policy, touch_policy)) = meta.policy {
-                let pin_policy_str = match pin_policy {
-                    PinPolicy::Default => "default",
-                    PinPolicy::Never => "never",
-                    PinPolicy::Once => "once",
-                    PinPolicy::Always => "always",
-                };
-                let touch_policy_str = match touch_policy {
-                    TouchPolicy::Default => "default",
-                    TouchPolicy::Never => "never",
-                    TouchPolicy::Always => "always",
-                    TouchPolicy::Cached => "cached",
-                };
+                let pin_policy_str = pin_policy.to_str();
+                let touch_policy_str = touch_policy.to_str();
                 if json_output {
                     json.insert("pin_policy", pin_policy_str.to_string());
                     json.insert("touch_policy", touch_policy_str.to_string());
@@ -96,12 +79,7 @@ impl Command for CommandImpl {
                 let slot_str = format!("{:x}", Into::<u8>::into(k.slot()));
                 if slot_equals(&slot_id, &slot_str) {
                     if let Ok(algorithm_id) = get_algorithm_id(&k.certificate().cert.tbs_certificate.subject_public_key_info) {
-                        let algorithm_str = match algorithm_id {
-                            AlgorithmId::Rsa1024 => "rsa1024",
-                            AlgorithmId::Rsa2048 => "rsa2048",
-                            AlgorithmId::EccP256 => "p256",
-                            AlgorithmId::EccP384 => "p384",
-                        };
+                        let algorithm_str = algorithm_id.to_str();
                         json.insert("algorithm", algorithm_str.to_string());
 
                         let public_key_bit_string = &cert.subject_public_key_info.subject_public_key;

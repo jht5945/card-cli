@@ -2,10 +2,10 @@ use std::collections::BTreeMap;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use openpgp_card::crypto_data::Cryptogram;
-use openpgp_card::OpenPgp;
 use rust_util::{util_msg, XResult};
 use rust_util::util_clap::{Command, CommandError};
 
+use crate::pgpcardutil;
 use crate::util::{base64_decode, base64_encode};
 
 #[derive(Debug, Clone, Copy)]
@@ -61,8 +61,7 @@ impl Command for CommandImpl {
             return simple_error!("cipher or cipher-base64 must assign one");
         };
 
-        let card = crate::pgpcardutil::get_card()?;
-        let mut pgp = OpenPgp::new(card);
+        let mut pgp = pgpcardutil::get_openpgp_card()?;
         let mut trans = opt_result!(pgp.transaction(), "Open card failed: {}");
 
         opt_result!(trans.verify_pw1_user(pin.as_ref()), "User pin verify failed: {}");
@@ -72,10 +71,12 @@ impl Command for CommandImpl {
             EncryptAlgo::RSA => trans.decipher(Cryptogram::RSA(&cipher_bytes))?,
             EncryptAlgo::ECDH => trans.decipher(Cryptogram::ECDH(&cipher_bytes))?,
         };
-        // let text = trans.decipher(Cryptogram::RSA(&cipher_bytes))?;
         success!("Clear text HEX: {}", hex::encode(&text));
         success!("Clear text base64: {}", base64_encode(&text));
-        success!("Clear text UTF-8: {}", String::from_utf8_lossy(&text));
+        let text_opt = String::from_utf8(text.clone()).ok();
+        if let Some(text) = &text_opt {
+            success!("Clear text UTF-8: {}", text);
+        }
 
         if json_output {
             let mut json = BTreeMap::<&'_ str, String>::new();
@@ -83,7 +84,9 @@ impl Command for CommandImpl {
             json.insert("cipher_base64", base64_encode(&cipher_bytes));
             json.insert("text_hex", hex::encode(&text));
             json.insert("text_base64", base64_encode(&text));
-            json.insert("text_utf8", String::from_utf8_lossy(&text).to_string());
+            if let Some(text) = text_opt {
+                json.insert("text_utf8", text);
+            }
 
             println!("{}", serde_json::to_string_pretty(&json).unwrap());
         }

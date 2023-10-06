@@ -5,10 +5,11 @@ use std::io::{ErrorKind, Read};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use digest::Digest;
 use openpgp_card::crypto_data::Hash;
-use openpgp_card::OpenPgp;
 use rust_util::util_clap::{Command, CommandError};
 use rust_util::{util_msg, XResult};
 use sha2::{Sha256, Sha384, Sha512};
+
+use crate::pgpcardutil;
 use crate::util::base64_encode;
 
 const BUFF_SIZE: usize = 512 * 1024;
@@ -101,8 +102,7 @@ impl Command for CommandImpl {
             return simple_error!("SHA256, SHA384 or SHA512 must assign at least one");
         }
 
-        let card = crate::pgpcardutil::get_card()?;
-        let mut pgp = OpenPgp::new(card);
+        let mut pgp = pgpcardutil::get_openpgp_card()?;
         let mut trans = opt_result!(pgp.transaction(), "Open card failed: {}");
 
         if let Some(sha256) = sha256 {

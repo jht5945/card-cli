@@ -6,16 +6,22 @@ use tabled::{Table, Tabled};
 use tabled::settings::Style;
 use x509_parser::parse_x509_certificate;
 use yubikey::{Certificate, YubiKey};
-use yubikey::piv::SlotId;
+use yubikey::piv::{metadata, SlotId};
 
-use crate::pivutil::get_algorithm_id;
+use crate::pivutil::{get_algorithm_id, ToStr};
+
+const NA: &str = "N/A";
 
 #[derive(Tabled)]
 struct PivSlot {
     name: String,
     id: String,
     algorithm: String,
+    origin: String,
+    retries: String,
     subject: String,
+    pin_policy: String,
+    touch_policy: String,
 }
 
 
@@ -73,6 +79,22 @@ impl Command for CommandImpl {
 
 fn print_summary_info(yubikey: &mut YubiKey, slot: SlotId, piv_slots: &mut Vec<PivSlot>, show_all: bool, show_table: bool) -> XResult<()> {
     let slot_id: u8 = slot.into();
+    let mut origin = NA.to_string();
+    let mut retries = NA.to_string();
+    let mut pin_policy = NA.to_string();
+    let mut touch_policy = NA.to_string();
+    if let Ok(metadata) = metadata(yubikey, slot) {
+        if let Some((p_policy, t_policy)) = &metadata.policy {
+            pin_policy = p_policy.to_str().to_string();
+            touch_policy = t_policy.to_str().to_string();
+        }
+        if let Some(o) = &metadata.origin {
+            origin = o.to_str().to_string();
+        }
+        if let Some(r) = &metadata.retries {
+            retries = format!("{}/{}", r.retry_count, r.remaining_count);
+        }
+    }
     let cert = match Certificate::read(yubikey, slot) {
         Ok(c) => c,
         Err(e) => {
@@ -81,8 +103,12 @@ fn print_summary_info(yubikey: &mut YubiKey, slot: SlotId, piv_slots: &mut Vec<P
                     piv_slots.push(PivSlot {
                         name: slot.to_string(),
                         id: format!("{:x}", slot_id),
-                        algorithm: "N/A".to_string(),
-                        subject: "N/A".to_string(),
+                        algorithm: NA.to_string(),
+                        origin: origin.to_string(),
+                        retries: retries.to_string(),
+                        subject: NA.to_string(),
+                        pin_policy: pin_policy.to_string(),
+                        touch_policy: touch_policy.to_string(),
                     });
                 } else {
                     warning!("Slot: {:?}, id: {:x}, certificate not found",  slot, slot_id);
@@ -104,10 +130,22 @@ fn print_summary_info(yubikey: &mut YubiKey, slot: SlotId, piv_slots: &mut Vec<P
             name: slot.to_string(),
             id: format!("{:x}", slot_id),
             algorithm: algorithm_id,
+            origin: origin.to_string(),
+            retries: retries.to_string(),
             subject: cert_subject,
+            pin_policy: pin_policy.to_string(),
+            touch_policy: touch_policy.to_string(),
         });
     } else {
-        success!("Slot: {:x},  algorithm: {}, name: {:?},subject: {}", slot_id, algorithm_id, slot, cert_subject);
+        success!("Slot: {:x},  algorithm: {}, name: {:?}, origin: {}, subject: {}, pin policy: {}, touch policy: {}",
+            slot_id,
+            algorithm_id,
+            slot,
+            &origin,
+            &cert_subject,
+            &pin_policy,
+            &touch_policy,
+        );
     }
 
     Ok(())

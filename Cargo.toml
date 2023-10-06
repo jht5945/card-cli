@@ -1,6 +1,6 @@
 [package]
 name = "card-cli"
-version = "1.7.5"
+version = "1.7.6"
 authors = ["Hatter Jiang <jht5945@gmail.com>"]
 edition = "2018"
 
@@ -23,7 +23,7 @@ openpgp-card-sequoia = "0.1"
 sequoia-openpgp = "1.13"
 chrono = "0.4"
 simpledateformat = "0.1"
-ring = "0.16"
+ring = "0.17"
 openssl = "0.10"
 pem = "3.0"
 yubikey = { version = "0.8", features = ["untested"] }
@@ -34,6 +34,8 @@ ssh-agent = { version = "0.2", features = ["agent"] }
 p256 = { version = "0.13", features = ["pem", "ecdh"] }
 spki = { version = "0.7", features = ["pem"] }
 tabled = "0.14.0"
+env_logger = "0.10"
+bech32 = "0.9.1"
 #lazy_static = "1.4.0"
 #ssh-key = "0.4.0"
 #ctap-hid-fido2 = "2.1.3"

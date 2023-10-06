@@ -35,6 +35,7 @@ mod cmd_pivgenerate;
 mod cmd_chall;
 mod cmd_challconfig;
 mod cmd_sshagent;
+mod cmd_ageaddress;
 
 pub struct DefaultCommandImpl;
 
@@ -49,6 +50,10 @@ impl DefaultCommandImpl {
 }
 
 fn main() {
+    // Run with: RUST_LOG=debug, for more: https://docs.rs/env_logger/0.10.0/env_logger/
+    #[cfg(debug_assertions)]
+    env_logger::init();
+
     match inner_main() {
         Err(e) => failure_and_exit!("Run cli error: {}", e),
         Ok(Some(code)) => std::process::exit(code),
@@ -81,6 +86,7 @@ fn inner_main() -> CommandError {
         Box::new(cmd_u2fregister::CommandImpl),
         Box::new(cmd_u2fsign::CommandImpl),
         Box::new(cmd_sshagent::CommandImpl),
+        Box::new(cmd_ageaddress::CommandImpl),
     ];
     let mut app = App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))

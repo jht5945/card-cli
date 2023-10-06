@@ -95,7 +95,7 @@ impl Command for CommandImpl {
                     iff!(card_holder_outputs.is_empty(), "".to_string(), card_holder_outputs.join(", ")));
             }
             if let Ok(Some(algo_info)) = trans.algorithm_information() {
-                information!("Algo info: {}", algo_info);
+                debugging!("Algo info: {}", algo_info);
             }
             if let Ok(application_related_data) = trans.application_related_data() {
                 if let Ok(fingerprints) = application_related_data.fingerprints() {

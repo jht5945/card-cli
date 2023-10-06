@@ -1,7 +1,8 @@
 use clap::{App, Arg, ArgMatches, SubCommand};
 use openpgp_card::card_do::{Lang, Sex};
-use openpgp_card::OpenPgp;
 use rust_util::util_clap::{Command, CommandError};
+
+use crate::pgpcardutil;
 
 pub struct CommandImpl;
 
@@ -24,8 +25,7 @@ impl Command for CommandImpl {
         let pin = opt_value_result!(pin_opt, "Pin must be assigned");
         if pin.len() < 8 { return simple_error!("Admin pin length:{}, must >= 8!", pin.len()); }
 
-        let card = crate::pgpcardutil::get_card()?;
-        let mut pgp = OpenPgp::new(card);
+        let mut pgp = pgpcardutil::get_openpgp_card()?;
         let mut trans = opt_result!(pgp.transaction(), "Open card failed: {}");
 
         if sub_arg_matches.is_present("reset") {
