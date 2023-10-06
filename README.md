@@ -154,6 +154,18 @@ $ ykman piv keys import --pin-policy NEVER --touch-policy CACHED 82 private_key.
 $ ykman piv certificates generate 82 public_key.pem -s 'O=age-plugin-yubikey,OU=0.3.3,CN=hatter-yk'
 ```
 
+# age
+
+## age-address
+
+```shell
+$ card-cli age-address
+[INFO ] Found 1 card(s)
+[OK   ] Found card #0: Ok(ApplicationIdentifier { application: 1, version: 772, manufacturer: 6, serial: 370378374 })
+[OK   ] Age address: age10l464vxcpnkjguctvylnmp5jg4swhncn4quda0qxta3ud8pycc0qeaj2te
+```
+
+
 <br><br>
 
 Downloads:
