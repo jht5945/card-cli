@@ -11,7 +11,7 @@ const AGE_PUBLIC_KEY_PREFIX: &str = "age";
 pub struct CommandImpl;
 
 impl Command for CommandImpl {
-    fn name(&self) -> &str { "age-address" }
+    fn name(&self) -> &str { "pgp-age-address" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("OpenPGP Card Encryption key to age address")

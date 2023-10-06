@@ -35,7 +35,7 @@ mod cmd_pivgenerate;
 mod cmd_chall;
 mod cmd_challconfig;
 mod cmd_sshagent;
-mod cmd_ageaddress;
+mod cmd_pgpageaddress;
 
 pub struct DefaultCommandImpl;
 
@@ -86,7 +86,7 @@ fn inner_main() -> CommandError {
         Box::new(cmd_u2fregister::CommandImpl),
         Box::new(cmd_u2fsign::CommandImpl),
         Box::new(cmd_sshagent::CommandImpl),
-        Box::new(cmd_ageaddress::CommandImpl),
+        Box::new(cmd_pgpageaddress::CommandImpl),
     ];
     let mut app = App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
