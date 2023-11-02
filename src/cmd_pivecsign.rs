@@ -53,7 +53,7 @@ impl Command for CommandImpl {
             opt_result!(yk.verify_pin(pin.as_bytes()), "YubiKey verify pin failed: {}");
         }
 
-        let hash_bytes = opt_result!(hex::decode(&hash_hex), "Parse hash in hex failed: {}");
+        let hash_bytes = opt_result!(hex::decode(hash_hex), "Parse hash in hex failed: {}");
 
         if let Ok(slot_metadata) = metadata(&mut yk, slot_id) {
             match slot_metadata.algorithm {
@@ -77,14 +77,14 @@ impl Command for CommandImpl {
             json.insert("slot", slot_id.to_string());
             json.insert("algorithm", algorithm_str.to_string());
             json.insert("hash_hex", hex::encode(&hash_bytes));
-            json.insert("signed_data_hex", hex::encode(&signed_data.as_bytes()));
-            json.insert("signed_data_base64", base64_encode(&signed_data.as_bytes()));
+            json.insert("signed_data_hex", hex::encode(signed_data.as_bytes()));
+            json.insert("signed_data_base64", base64_encode(signed_data.as_bytes()));
         } else {
             information!("Slot: {:?}", slot_id);
             information!("Algorithm: {}", algorithm_str);
             information!("Hash hex: {}", hex::encode(&hash_bytes));
-            information!("Signed data base64: {}", base64_encode(&signed_data.as_bytes()));
-            information!("Signed data hex: {}", hex::encode(&signed_data.as_bytes()));
+            information!("Signed data base64: {}", base64_encode(signed_data.as_bytes()));
+            information!("Signed data hex: {}", hex::encode(signed_data.as_bytes()));
         }
 
         if json_output {

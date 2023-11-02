@@ -103,7 +103,7 @@ impl U2fV2Challenge {
             None => U2fV2Challenge::new_random(app_id, with_time_stamp_prefix),
             Some(challenge_hex) => {
                 let challenge_bytes = opt_result!(hex::decode(challenge_hex), "Decode challenge hex failed: {}");
-                let challenge = URL_SAFE_NO_PAD.encode(&challenge_bytes);
+                let challenge = URL_SAFE_NO_PAD.encode(challenge_bytes);
                 U2fV2Challenge::new(challenge, app_id)
             }
         })
@@ -122,7 +122,7 @@ impl U2fV2Challenge {
             rand_bytes[..8].clone_from_slice(&timestamp_be_bytes[..8]);
         }
 
-        let challenge = URL_SAFE_NO_PAD.encode(&rand_bytes);
+        let challenge = URL_SAFE_NO_PAD.encode(rand_bytes);
         Self::new(challenge, app_id)
     }
 

@@ -10,7 +10,7 @@ use crate::digest::sha256_bytes;
 
 #[derive(Clone, Copy, Debug)]
 pub enum PkiAlgorithm {
-    RSA,
+    Rsa,
     P256,
     P384,
     P521,
@@ -19,7 +19,7 @@ pub enum PkiAlgorithm {
 pub fn get_pki_algorithm(algorithm_identifier: &AlgorithmIdentifier) -> XResult<PkiAlgorithm> {
     let algorithm_id_string = algorithm_identifier.algorithm.to_id_string();
     if "1.2.840.113549.1.1.1" == algorithm_id_string {
-        return Ok(PkiAlgorithm::RSA);
+        return Ok(PkiAlgorithm::Rsa);
     }
     if "1.2.840.10045.2.1" == algorithm_id_string {
         if let Some(parameters) = &algorithm_identifier.parameters {
@@ -60,8 +60,8 @@ pub fn openpgp_card_public_key_pem(public_key: &PublicKeyMaterial) -> Option<(Ve
             Some(rsa_public_key_pem(rsa_pub.n(), rsa_pub.v()))
         }
         PublicKeyMaterial::E(ecc_pub) => {
-            let ecc_pub_key_bytes_sha256 = sha256_bytes(&ecc_pub.data());
-            Some((ecc_pub_key_bytes_sha256, format!("hex:{}", hex::encode(&ecc_pub.data()))))
+            let ecc_pub_key_bytes_sha256 = sha256_bytes(ecc_pub.data());
+            Some((ecc_pub_key_bytes_sha256, format!("hex:{}", hex::encode(ecc_pub.data()))))
         }
         _ => {
             warning!("Unknown public key: {:?}", public_key);

@@ -29,7 +29,10 @@ impl Command for CommandImpl {
             }
             let encryption_public_key = match trans.public_key(KeyType::Decryption) {
                 Ok(pub_key) => pub_key,
-                Err(e) => return simple_error!("Get decryption public key failed: {}", e),
+                Err(e) => {
+                    failure!("Get decryption public key failed: {}", e);
+                    continue;
+                }
             };
             if let PublicKeyMaterial::E(ecc_pub) = &encryption_public_key {
                 if let Algo::Ecc(ecc) = ecc_pub.algo() {
@@ -41,11 +44,11 @@ impl Command for CommandImpl {
                             Variant::Bech32,
                         ), "Generate age address failed: {}");
                         success!("Age address: {}", age_address);
-                        return Ok(None);
                     }
                 }
+            } else {
+                failure!("Not supported encryption key: {}", encryption_public_key);
             }
-            return simple_error!("Not supported encryption key: {}", encryption_public_key);
         }
         Ok(None)
     }

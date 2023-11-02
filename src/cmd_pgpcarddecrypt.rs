@@ -10,16 +10,16 @@ use crate::util::{base64_decode, base64_encode};
 
 #[derive(Debug, Clone, Copy)]
 enum EncryptAlgo {
-    RSA,
-    ECDH,
+    Rsa,
+    Ecdh,
 }
 
 impl EncryptAlgo {
     fn from_str(algo: &str) -> XResult<Self> {
         match algo {
-            "rsa" => Ok(Self::RSA),
-            "x25519" | "ecdh" => Ok(Self::ECDH),
-            _ => return simple_error!("Unknown algo: {}", algo),
+            "rsa" => Ok(Self::Rsa),
+            "x25519" | "ecdh" => Ok(Self::Ecdh),
+            _ => simple_error!("Unknown algo: {}", algo),
         }
     }
 }
@@ -68,8 +68,8 @@ impl Command for CommandImpl {
         success!("User pin verify success!");
 
         let text = match algo {
-            EncryptAlgo::RSA => trans.decipher(Cryptogram::RSA(&cipher_bytes))?,
-            EncryptAlgo::ECDH => trans.decipher(Cryptogram::ECDH(&cipher_bytes))?,
+            EncryptAlgo::Rsa => trans.decipher(Cryptogram::RSA(&cipher_bytes))?,
+            EncryptAlgo::Ecdh => trans.decipher(Cryptogram::ECDH(&cipher_bytes))?,
         };
         success!("Clear text HEX: {}", hex::encode(&text));
         success!("Clear text base64: {}", base64_encode(&text));

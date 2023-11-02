@@ -66,7 +66,7 @@ impl Command for CommandImpl {
                 let public_key_point_hex = sub_arg_matches.value_of("public-key-point-hex").unwrap_or_else(||
                     failure_and_exit!("--public-key, --public-key-file or --public-key-point-hex must require one"));
                 let public_key_point_bytes = opt_result!(hex::decode(public_key_point_hex), "Parse public key point hex failed: {}");
-                let encoded_point = opt_result!(EncodedPoint::from_bytes(&public_key_point_bytes), "Parse public key point failed: {}");
+                let encoded_point = opt_result!(EncodedPoint::from_bytes(public_key_point_bytes), "Parse public key point failed: {}");
                 public_key = PublicKey::from_encoded_point(&encoded_point).unwrap();
             };
 
@@ -109,17 +109,14 @@ impl Command for CommandImpl {
                     }
                 }
                 if let Some(public_key) = &meta.public {
-                    let algorithm_id = opt_result!(get_algorithm_id(&public_key), "Get algorithm id failed: {}");
+                    let algorithm_id = opt_result!(get_algorithm_id(public_key), "Get algorithm id failed: {}");
                     match algorithm_id {
-                        AlgorithmId::Rsa1024 | AlgorithmId::Rsa2048 | AlgorithmId::EccP384 => {
+                        AlgorithmId::Rsa1024 | AlgorithmId::Rsa2048 => {
                             failure_and_exit!("Not supported algorithm: {:?}", algorithm_id);
                         }
-                        AlgorithmId::EccP256 => {
-                            match algorithm_id {
-                                AlgorithmId::EccP256 => if let Some(public) = &meta.public {
-                                    json.insert("pk_point_hex", hex::encode(public.subject_public_key.raw_bytes()));
-                                }
-                                _ => {}
+                        AlgorithmId::EccP256 | AlgorithmId::EccP384 => {
+                            if let Some(public) = &meta.public {
+                                json.insert("pk_point_hex", hex::encode(public.subject_public_key.raw_bytes()));
                             }
                         }
                     }

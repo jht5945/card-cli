@@ -1,7 +1,7 @@
 use crate::util::base64_encode;
 
 pub fn with_sign(mut vec: Vec<u8>) -> Vec<u8> {
-    if vec.len() > 0 && vec[0] >= 128 {
+    if !vec.is_empty() && vec[0] >= 128 {
         vec.insert(0, 0x00);
     }
     vec

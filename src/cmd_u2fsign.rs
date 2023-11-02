@@ -116,7 +116,7 @@ impl Command for CommandImpl {
             json.insert("challenge", u2fv2_challenge_str.to_string());
             json.insert("challenge_hash", hex::encode(&challenge_hash));
             json.insert("device_info", format!("{}", &device_info));
-            json.insert("signature", hex::encode(&signature));
+            json.insert("signature", hex::encode(signature));
             json.insert("signed_message", hex::encode(&signed_message));
             json.insert("key_handle", hex::encode(&handle_used));
             json.insert("sign_data", hex::encode(&sign_data));
@@ -128,7 +128,7 @@ impl Command for CommandImpl {
             information!("Sign result : {}", base64_encode(&sign_data));
             information!("- presence : {}", user_presence_flag);
             information!("- counter  : {}", counter_u32);
-            information!("- signature: {}", hex::encode(&signature));
+            information!("- signature: {}", hex::encode(signature));
             information!("Key handle: {}", hex::encode(&handle_used));
             information!("Signed message: {}", hex::encode(&signed_message));
         }

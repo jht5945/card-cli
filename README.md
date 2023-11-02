@@ -156,10 +156,10 @@ $ ykman piv certificates generate 82 public_key.pem -s 'O=age-plugin-yubikey,OU=
 
 # age
 
-## age-address
+## pgp-age-address
 
 ```shell
-$ card-cli age-address
+$ card-cli pgp-age-address
 [INFO ] Found 1 card(s)
 [OK   ] Found card #0: Ok(ApplicationIdentifier { application: 1, version: 772, manufacturer: 6, serial: 370378374 })
 [OK   ] Age address: age10l464vxcpnkjguctvylnmp5jg4swhncn4quda0qxta3ud8pycc0qeaj2te

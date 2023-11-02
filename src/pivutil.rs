@@ -4,7 +4,7 @@ use spki::der::{Decode, Encode};
 use x509_parser::prelude::FromDer;
 use x509_parser::public_key::RSAPublicKey;
 use yubikey::{PinPolicy, TouchPolicy};
-use yubikey::piv::{AlgorithmId, ManagementAlgorithmId, Origin, RetiredSlotId};
+use yubikey::piv::{AlgorithmId, ManagementAlgorithmId, ManagementSlotId, Origin, RetiredSlotId};
 use yubikey::piv::SlotId;
 
 const RSA: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.1");
@@ -19,6 +19,36 @@ const ECC: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.2.1");
 const ECC_P256: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.3.1.7");
 const ECC_P384: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.132.0.34");
 
+pub const ORDERED_SLOTS: [SlotId; 28] = [
+    SlotId::Management(ManagementSlotId::Pin),
+    SlotId::Management(ManagementSlotId::Puk),
+    SlotId::Retired(RetiredSlotId::R1),
+    SlotId::Retired(RetiredSlotId::R2),
+    SlotId::Retired(RetiredSlotId::R3),
+    SlotId::Retired(RetiredSlotId::R4),
+    SlotId::Retired(RetiredSlotId::R5),
+    SlotId::Retired(RetiredSlotId::R6),
+    SlotId::Retired(RetiredSlotId::R7),
+    SlotId::Retired(RetiredSlotId::R8),
+    SlotId::Retired(RetiredSlotId::R9),
+    SlotId::Retired(RetiredSlotId::R10),
+    SlotId::Retired(RetiredSlotId::R11),
+    SlotId::Retired(RetiredSlotId::R12),
+    SlotId::Retired(RetiredSlotId::R13),
+    SlotId::Retired(RetiredSlotId::R14),
+    SlotId::Retired(RetiredSlotId::R15),
+    SlotId::Retired(RetiredSlotId::R16),
+    SlotId::Retired(RetiredSlotId::R17),
+    SlotId::Retired(RetiredSlotId::R18),
+    SlotId::Retired(RetiredSlotId::R19),
+    SlotId::Retired(RetiredSlotId::R20),
+    SlotId::Authentication,
+    SlotId::Management(ManagementSlotId::Management),
+    SlotId::Signature,
+    SlotId::KeyManagement,
+    SlotId::CardAuthentication,
+    SlotId::Attestation,
+];
 
 pub trait ToStr {
     fn to_str(&self) -> &str;
@@ -108,6 +138,11 @@ pub fn get_algorithm_id(public_key_info: &SubjectPublicKeyInfoOwned) -> XResult<
 
 pub fn slot_equals(slot_id: &SlotId, slot: &str) -> bool {
     get_slot_id(slot).map(|sid| &sid == slot_id).unwrap_or(false)
+}
+
+pub fn to_slot_hex(slot: &SlotId) -> String {
+    let slot_id: u8 = (*slot).into();
+    format!("{:x}", slot_id)
 }
 
 pub fn get_slot_id(slot: &str) -> XResult<SlotId> {

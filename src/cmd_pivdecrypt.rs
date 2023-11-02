@@ -43,8 +43,8 @@ impl Command for CommandImpl {
             return simple_error!("Not valid encrypted data, prefix: {}", hex::encode(&decrypted_data_bytes[0..2]));
         }
         let mut index_of_00_from_index_1 = 0;
-        for i in 1..decrypted_data_bytes.len() {
-            if decrypted_data_bytes[i] == 0x00 {
+        for (i, byte) in decrypted_data_bytes.iter().enumerate().skip(1) {
+            if *byte == 0x00 {
                 index_of_00_from_index_1 = i + 1;
                 break;
             }
@@ -59,8 +59,8 @@ impl Command for CommandImpl {
         if json_output {
             let mut json = BTreeMap::<&'_ str, String>::new();
             json.insert("encrypted_data_hex", hex::encode(&encrypted_data));
-            json.insert("decrypted_data_hex", hex::encode(&decrypted_data_bytes));
-            json.insert("clear_data_hex", hex::encode(&clear_data));
+            json.insert("decrypted_data_hex", hex::encode(decrypted_data_bytes));
+            json.insert("clear_data_hex", hex::encode(clear_data));
             json.insert("clear_data", String::from_utf8_lossy(clear_data).to_string());
             println!("{}", serde_json::to_string_pretty(&json).unwrap());
         }

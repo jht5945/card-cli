@@ -11,6 +11,7 @@ mod digest;
 mod pivutil;
 mod rsautil;
 mod pkiutil;
+mod hmacutil;
 mod pgpcardutil;
 mod cmd_list;
 mod cmd_u2fregister;
@@ -32,6 +33,7 @@ mod cmd_pivecdh;
 mod cmd_pivecsign;
 mod cmd_pivdecrypt;
 mod cmd_pivgenerate;
+mod cmd_hmac_sha1;
 mod cmd_chall;
 mod cmd_challconfig;
 mod cmd_sshagent;
@@ -65,6 +67,7 @@ fn inner_main() -> CommandError {
     let commands: Vec<Box<dyn Command>> = vec![
         Box::new(cmd_list::CommandImpl),
         Box::new(cmd_chall::CommandImpl),
+        Box::new(cmd_hmac_sha1::CommandImpl),
         Box::new(cmd_challconfig::CommandImpl),
         Box::new(cmd_rsaencrypt::CommandImpl),
         Box::new(cmd_rsadecrypt::CommandImpl),

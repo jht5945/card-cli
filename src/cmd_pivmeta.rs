@@ -35,8 +35,7 @@ impl Command for CommandImpl {
         let mut yk = opt_result!(YubiKey::open(), "YubiKey not found: {}");
 
         let slot_id = pivutil::get_slot_id(slot)?;
-
-        json.insert("slot", slot.to_string());
+        json.insert("slot", pivutil::to_slot_hex(&slot_id));
         if let Ok(meta) = metadata(&mut yk, slot_id) {
             debugging!("PIV meta: {:?}", meta);
             let algorithm_str = meta.algorithm.to_str();
@@ -85,7 +84,14 @@ impl Command for CommandImpl {
                         let public_key_bit_string = &cert.subject_public_key_info.subject_public_key;
                         match algorithm_id {
                             AlgorithmId::EccP256 | AlgorithmId::EccP384 => {
-                                json.insert("pk_point_hex", hex::encode(public_key_bit_string.raw_bytes()));
+                                let pk_point_hex = public_key_bit_string.raw_bytes();
+                                json.insert("pk_point_hex", hex::encode(pk_point_hex));
+                                if pk_point_hex[0] == 0x04 {
+                                    json.insert(
+                                        "pk_point_hex_compressed",
+                                        format!("02{}", hex::encode(&pk_point_hex[1..(pk_point_hex.len() / 2) + 1])),
+                                    );
+                                }
                             }
                             _ => {}
                         }

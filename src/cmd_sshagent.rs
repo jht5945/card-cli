@@ -34,7 +34,7 @@ impl SshAgent {
             let mut trans = opt_result!(pgp.transaction(), "Open card failed: {}");
             let serial = trans.application_related_data()
                 .map(|d| d.application_id().map(|i| i.serial()))
-                .unwrap_or_else(|_| Ok(0)).unwrap_or_else(|_| 0);
+                .unwrap_or_else(|_| Ok(0)).unwrap_or(0);
             let serial = hex::encode(serial.to_be_bytes());
             let public_key = opt_result!(trans.public_key(iff!(use_sign, KeyType::Signing, KeyType::Authentication)), "Cannot find signing key: {}");
             let rsa_public_key = match public_key {
@@ -67,11 +67,10 @@ impl SshAgent {
         debugging!("Request: {:?}", request);
         let response = match request {
             Message::RequestIdentities => {
-                let mut identities = vec![];
-                identities.push(message::Identity {
+                let identities = vec![message::Identity {
                     pubkey_blob: to_bytes(&self.public_key)?,
                     comment: self.comment.clone(),
-                });
+                }];
                 Ok(Message::IdentitiesAnswer(identities))
             }
             Message::RemoveIdentity(ref _identity) => {
@@ -121,7 +120,7 @@ impl SshAgent {
             _ => Err(From::from(format!("Unknown message: {:?}", request)))
         };
         debugging!("Response {:?}", response);
-        return response;
+        response
     }
 }
 
@@ -170,7 +169,7 @@ impl Command for CommandImpl {
         let sock_file_path = PathBuf::from(".");
         match std::fs::canonicalize(sock_file_path) {
             Ok(canonicalized_sock_file_path) => information!("SSH_AUTH_SOCK={}/{}",
-                    canonicalized_sock_file_path.to_str().unwrap_or_else(|| "-"), sock_file),
+                    canonicalized_sock_file_path.to_str().unwrap_or("-"), sock_file),
             Err(e) => warning!("Get canonicalized sock file path failed: {}", e),
         }
 

@@ -58,7 +58,7 @@ impl Command for CommandImpl {
             let m = BigNum::from_slice(&signature).unwrap();
             let mut r = BigNum::new().unwrap();
             r.mod_exp(&m, e, n, &mut BigNumContext::new().unwrap()).unwrap();
-            debugging!("Signature raw HEX: 00{}", hex::encode(&r.to_vec()));
+            debugging!("Signature raw HEX: 00{}", hex::encode(r.to_vec()));
         });
 
         let file_in = opt_value_result!(sub_arg_matches.value_of("in"), "File in --in required");

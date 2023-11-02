@@ -159,6 +159,9 @@ impl Command for CommandImpl {
                 if last_pgp_rsa_private_key.is_some() { return simple_error!("Last PGP RSA private key is not none"); }
                 last_pgp_rsa_private_key.replace(pgp_rsa_private_key);
             } else if let Packet::Signature(signature) = &pp.packet {
+                if let Signature::V3(_signature_v3) = signature {
+                    failure!("Signature v3 is not supported.");
+                }
                 if let Signature::V4(signature_v4) = signature {
                     if let Some(sub_package) = signature_v4.hashed_area().subpacket(SubpacketTag::KeyFlags) {
                         if let SubpacketValue::KeyFlags(key_flags) = sub_package.value() {

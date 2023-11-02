@@ -62,8 +62,8 @@ impl Command for CommandImpl {
             if json_output {
                 let mut json = BTreeMap::<&'_ str, String>::new();
                 json.insert("hash_hex", hex::encode(&hash));
-                json.insert("sign_hex", hex::encode(&sign_bytes));
-                json.insert("sign_base64", base64_encode(&sign_bytes));
+                json.insert("sign_hex", hex::encode(sign_bytes));
+                json.insert("sign_base64", base64_encode(sign_bytes));
                 println!("{}", serde_json::to_string_pretty(&json).unwrap());
             } else {
                 success!("Signature HEX: {}", hex::encode(sign_bytes));

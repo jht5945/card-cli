@@ -8,7 +8,7 @@ use x509_parser::parse_x509_certificate;
 use yubikey::{Certificate, YubiKey};
 use yubikey::piv::{metadata, SlotId};
 
-use crate::pivutil::{get_algorithm_id, ToStr};
+use crate::pivutil::{get_algorithm_id, ORDERED_SLOTS, ToStr};
 
 const NA: &str = "N/A";
 
@@ -34,11 +34,13 @@ impl Command for CommandImpl {
         SubCommand::with_name(self.name()).about("PIV subcommand")
             .arg(Arg::with_name("table").long("table").help("Show table"))
             .arg(Arg::with_name("all").long("all").help("Show all"))
+            .arg(Arg::with_name("ordered").long("ordered").help("Show ordered"))
     }
 
     fn run(&self, _arg_matches: &ArgMatches, sub_arg_matches: &ArgMatches) -> CommandError {
         let show_table = sub_arg_matches.is_present("table");
         let show_all = sub_arg_matches.is_present("all");
+        let show_ordered = sub_arg_matches.is_present("ordered");
 
         let mut yk = opt_result!(YubiKey::open(), "YubiKey not found: {}");
         success!("Name: {}", yk.name());
@@ -59,19 +61,19 @@ impl Command for CommandImpl {
 
         match yk.piv_keys() {
             Ok(keys) => {
-                information!("Found {} PIV keys", keys.len());
+                information!("Found {} PIV keys of {}", keys.len(), ORDERED_SLOTS.len());
             }
             Err(e) => failure!("Get PIV keys failed: {}", e)
         }
 
         let mut piv_slots = vec![];
-        for slot in yubikey::piv::SLOTS {
+        for slot in iff!(show_ordered, ORDERED_SLOTS, yubikey::piv::SLOTS) {
             print_summary_info(&mut yk, slot, &mut piv_slots, show_all, show_table).ok();
         }
         if show_table {
             let mut table = Table::new(piv_slots);
             table.with(Style::rounded());
-            println!("{}", table.to_string());
+            println!("{}", table);
         }
         Ok(None)
     }

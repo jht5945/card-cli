@@ -16,18 +16,18 @@ const BUFF_SIZE: usize = 512 * 1024;
 
 #[derive(Debug, Clone, Copy)]
 enum SignAlgo {
-    RSA,
-    ECDSA,
-    EdDSA,
+    Rsa,
+    Ecdsa,
+    EdDsa,
 }
 
 impl SignAlgo {
     fn from_str(algo: &str) -> XResult<Self> {
         match algo {
-            "rsa" => Ok(Self::RSA),
-            "ecdsa" => Ok(Self::ECDSA),
-            "eddsa" => Ok(Self::EdDSA),
-            _ => return simple_error!("Unknown algo: {}", algo),
+            "rsa" => Ok(Self::Rsa),
+            "ecdsa" => Ok(Self::Ecdsa),
+            "eddsa" => Ok(Self::EdDsa),
+            _ => simple_error!("Unknown algo: {}", algo),
         }
     }
 }
@@ -48,7 +48,7 @@ impl Command for CommandImpl {
             .arg(Arg::with_name("use-sha256").long("use-sha256").help("Use SHA256 for file in"))
             .arg(Arg::with_name("use-sha384").long("use-sha384").help("Use SHA384 for file in"))
             .arg(Arg::with_name("use-sha512").long("use-sha512").help("Use SHA512 for file in"))
-            .arg(Arg::with_name("algo").long("algo").help("Algorithm, rsa, ecdsa, eddsa"))
+            .arg(Arg::with_name("algo").long("algo").takes_value(true).help("Algorithm, rsa, ecdsa, eddsa"))
             .arg(Arg::with_name("json").long("json").help("JSON output"))
     }
 
@@ -82,15 +82,21 @@ impl Command for CommandImpl {
 
             if use_sha256 {
                 let hash = opt_result!(calc_file_digest::<Sha256>(file_in), "Calc file: {} SHA256 failed: {}", file_in);
-                sha256 = Some(hex::encode(hash));
+                let hash_hex = hex::encode(hash);
+                information!("File SHA256 hex: {}", &hash_hex);
+                sha256 = Some(hash_hex);
             }
             if use_sha384 {
                 let hash = opt_result!(calc_file_digest::<Sha384>(file_in), "Calc file: {} SHA384 failed: {}", file_in);
-                sha384 = Some(hex::encode(hash));
+                let hash_hex = hex::encode(hash);
+                information!("File SHA384 hex: {}", &hash_hex);
+                sha384 = Some(hash_hex);
             }
             if use_sha512 {
                 let hash = opt_result!(calc_file_digest::<Sha512>(file_in), "Calc file: {} SHA512 failed: {}", file_in);
-                sha512 = Some(hex::encode(hash));
+                let hash_hex = hex::encode(hash);
+                information!("File SHA512 hex: {}", &hash_hex);
+                sha512 = Some(hash_hex);
             }
 
             let mut entry = BTreeMap::new();
@@ -111,15 +117,15 @@ impl Command for CommandImpl {
             opt_result!(trans.verify_pw1_sign(pin.as_ref()), "User sign pin verify failed: {}");
             success!("User sign pin verify success!");
             let sig = match algo {
-                SignAlgo::RSA => trans.signature_for_hash(Hash::SHA256(sha256_hex))?,
-                SignAlgo::ECDSA => trans.signature_for_hash(Hash::ECDSA(&sha256_hex))?,
-                SignAlgo::EdDSA => trans.signature_for_hash(Hash::EdDSA(&sha256_hex))?,
+                SignAlgo::Rsa => trans.signature_for_hash(Hash::SHA256(sha256_hex))?,
+                SignAlgo::Ecdsa => trans.signature_for_hash(Hash::ECDSA(&sha256_hex))?,
+                SignAlgo::EdDsa => trans.signature_for_hash(Hash::EdDSA(&sha256_hex))?,
             };
             success!("SHA256 signature HEX: {}", hex::encode(&sig));
             success!("SHA256 signature base64: {}", base64_encode(&sig));
             if json_output {
                 let mut entry = BTreeMap::new();
-                entry.insert("digest", hex::encode(&sha256_hex));
+                entry.insert("digest", hex::encode(sha256_hex));
                 entry.insert("signature", hex::encode(&sig));
                 json.insert("sha256", entry);
             }
@@ -130,15 +136,15 @@ impl Command for CommandImpl {
             opt_result!(trans.verify_pw1_sign(pin.as_ref()), "User sign pin verify failed: {}");
             success!("User sign pin verify success!");
             let sig = match algo {
-                SignAlgo::RSA => trans.signature_for_hash(Hash::SHA384(sha384_hex))?,
-                SignAlgo::ECDSA => trans.signature_for_hash(Hash::ECDSA(&sha384_hex))?,
-                SignAlgo::EdDSA => trans.signature_for_hash(Hash::EdDSA(&sha384_hex))?,
+                SignAlgo::Rsa => trans.signature_for_hash(Hash::SHA384(sha384_hex))?,
+                SignAlgo::Ecdsa => trans.signature_for_hash(Hash::ECDSA(&sha384_hex))?,
+                SignAlgo::EdDsa => trans.signature_for_hash(Hash::EdDSA(&sha384_hex))?,
             };
             success!("SHA384 signature HEX: {}", hex::encode(&sig));
             success!("SHA384 signature base64: {}", base64_encode(&sig));
             if json_output {
                 let mut entry = BTreeMap::new();
-                entry.insert("digest", hex::encode(&sha384_hex));
+                entry.insert("digest", hex::encode(sha384_hex));
                 entry.insert("signature", hex::encode(&sig));
                 json.insert("sha384", entry);
             }
@@ -149,15 +155,15 @@ impl Command for CommandImpl {
             opt_result!(trans.verify_pw1_sign(pin.as_ref()), "User sign pin verify failed: {}");
             success!("User sign pin verify success!");
             let sig = match algo {
-                SignAlgo::RSA => trans.signature_for_hash(Hash::SHA512(sha512_hex))?,
-                SignAlgo::ECDSA => trans.signature_for_hash(Hash::ECDSA(&sha512_hex))?,
-                SignAlgo::EdDSA => trans.signature_for_hash(Hash::EdDSA(&sha512_hex))?,
+                SignAlgo::Rsa => trans.signature_for_hash(Hash::SHA512(sha512_hex))?,
+                SignAlgo::Ecdsa => trans.signature_for_hash(Hash::ECDSA(&sha512_hex))?,
+                SignAlgo::EdDsa => trans.signature_for_hash(Hash::EdDSA(&sha512_hex))?,
             };
             success!("SHA512 signature HEX: {}", hex::encode(&sig));
             success!("SHA512 signature base64: {}", base64_encode(&sig));
             if json_output {
                 let mut entry = BTreeMap::new();
-                entry.insert("digest", hex::encode(&sha512_hex));
+                entry.insert("digest", hex::encode(sha512_hex));
                 entry.insert("signature", hex::encode(&sig));
                 json.insert("sha512", entry);
             }
