@@ -12,6 +12,7 @@ mod pivutil;
 mod rsautil;
 mod pkiutil;
 mod hmacutil;
+mod ecdsautil;
 mod pgpcardutil;
 mod cmd_list;
 mod cmd_u2fregister;
@@ -28,6 +29,7 @@ mod cmd_pgpcardmake;
 mod cmd_piv;
 mod cmd_pivsummary;
 mod cmd_pivmeta;
+mod cmd_pivverify;
 mod cmd_pivrsasign;
 mod cmd_pivecdh;
 mod cmd_pivecsign;
@@ -81,6 +83,7 @@ fn inner_main() -> CommandError {
         Box::new(cmd_piv::CommandImpl),
         Box::new(cmd_pivsummary::CommandImpl),
         Box::new(cmd_pivmeta::CommandImpl),
+        Box::new(cmd_pivverify::CommandImpl),
         Box::new(cmd_pivrsasign::CommandImpl),
         Box::new(cmd_pivecdh::CommandImpl),
         Box::new(cmd_pivecsign::CommandImpl),
