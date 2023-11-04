@@ -6,8 +6,7 @@ use rust_util::util_clap::{Command, CommandError};
 use yubikey::{Key, YubiKey};
 use yubikey::piv::{AlgorithmId, SlotId};
 
-use crate::{ecdsautil, pivutil};
-use crate::digest::sha256;
+use crate::{argsutil, ecdsautil, pivutil};
 use crate::ecdsautil::EcdsaAlgorithm;
 use crate::pivutil::slot_equals;
 
@@ -19,9 +18,10 @@ impl Command for CommandImpl {
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("PIV verify subcommand")
             .arg(Arg::with_name("slot").short("s").long("slot").takes_value(true).help("PIV slot, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e"))
+            .arg(Arg::with_name("signature-hex").short("t").long("signature-hex").takes_value(true).help("Signature"))
+            .arg(Arg::with_name("file").short("f").long("file").takes_value(true).help("Input file"))
             .arg(Arg::with_name("input").short("i").long("input").takes_value(true).help("Input"))
             .arg(Arg::with_name("hash-hex").short("x").long("hash-hex").takes_value(true).help("Hash"))
-            .arg(Arg::with_name("signature-hex").short("t").long("signature-hex").takes_value(true).help("Signature"))
             .arg(Arg::with_name("json").long("json").help("JSON output"))
     }
 
@@ -29,12 +29,7 @@ impl Command for CommandImpl {
         let json_output = sub_arg_matches.is_present("json");
         if json_output { util_msg::set_logger_std_out(false); }
 
-        let hash_hex = if let Some(input) = sub_arg_matches.value_of("input") {
-            hex::encode(sha256(input))
-        } else {
-            opt_value_result!(sub_arg_matches.value_of("hash-hex"), "--hash-hex must assigned").to_string()
-        };
-        let hash = opt_result!(hex::decode(hash_hex), "Parse hash in hex failed: {}");
+        let hash_bytes = argsutil::get_sha256_digest_or_hash(sub_arg_matches)?;
         let signature = if let Some(signature_hex) = sub_arg_matches.value_of("signature-hex") {
             opt_result!(hex::decode(signature_hex), "Parse signature-hex failed: {}")
         } else {
@@ -56,16 +51,16 @@ impl Command for CommandImpl {
                     AlgorithmId::EccP256 | AlgorithmId::EccP384 => {
                         let pk_point = public_key_bit_string.raw_bytes();
                         debugging!("ECDSA public key point: {}", hex::encode(pk_point));
-                        debugging!("Pre hash: {}", hex::encode(&hash));
+                        information!("Pre hash: {}", hex::encode(&hash_bytes));
                         debugging!("Signature: {}", hex::encode(&signature));
                         if json_output {
                             json.insert("public_key_hex", hex::encode(pk_point));
-                            json.insert("hash_hex", hex::encode(&hash));
+                            json.insert("hash_hex", hex::encode(&hash_bytes));
                             json.insert("signature_hex", hex::encode(&signature));
                         }
 
                         let algorithm = iff!(algorithm_id == AlgorithmId::EccP256, EcdsaAlgorithm::P256, EcdsaAlgorithm::P384);
-                        match ecdsautil::ecdsaverify(algorithm, pk_point, &hash, &signature) {
+                        match ecdsautil::ecdsaverify(algorithm, pk_point, &hash_bytes, &signature) {
                             Ok(_) => {
                                 success!("Verify ECDSA succeed.");
                                 if json_output {

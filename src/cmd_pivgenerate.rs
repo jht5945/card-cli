@@ -1,7 +1,7 @@
 use clap::{App, Arg, ArgMatches, SubCommand};
 use rust_util::util_clap::{Command, CommandError};
 use rust_util::util_msg;
-use yubikey::{piv, PinPolicy, TouchPolicy, YubiKey};
+use yubikey::{PinPolicy, piv, TouchPolicy, YubiKey};
 use yubikey::piv::{AlgorithmId, SlotId};
 
 pub struct CommandImpl;
@@ -11,7 +11,7 @@ impl Command for CommandImpl {
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("PIV Generate subcommand")
-            .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).default_value("123456").help("OpenPGP card user pin"))
+            .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("OpenPGP card user pin"))
             .arg(Arg::with_name("json").long("json").help("JSON output"))
     }
 

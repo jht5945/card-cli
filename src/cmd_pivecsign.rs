@@ -7,8 +7,7 @@ use x509_parser::nom::AsBytes;
 use yubikey::piv::{AlgorithmId, ManagementAlgorithmId, metadata, sign_data};
 use yubikey::YubiKey;
 
-use crate::digest::sha256;
-use crate::pivutil;
+use crate::{argsutil, pivutil};
 use crate::util::base64_encode;
 
 pub struct CommandImpl;
@@ -20,9 +19,10 @@ impl Command for CommandImpl {
         SubCommand::with_name(self.name()).about("PIV EC Sign(with SHA256) subcommand")
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("PIV card user pin"))
             .arg(Arg::with_name("slot").short("s").long("slot").takes_value(true).help("PIV slot, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e"))
-            .arg(Arg::with_name("hash-hex").short("x").long("hash-hex").takes_value(true).help("Hash"))
             .arg(Arg::with_name("algorithm").short("a").long("algorithm").takes_value(true).help("Algorithm, p256 or p384"))
+            .arg(Arg::with_name("file").short("f").long("file").takes_value(true).help("Input file"))
             .arg(Arg::with_name("input").short("i").long("input").takes_value(true).help("Input"))
+            .arg(Arg::with_name("hash-hex").short("x").long("hash-hex").takes_value(true).help("Hash"))
             .arg(Arg::with_name("json").long("json").help("JSON output"))
     }
 
@@ -35,11 +35,7 @@ impl Command for CommandImpl {
         let pin_opt = sub_arg_matches.value_of("pin");
 
         let slot = opt_value_result!(sub_arg_matches.value_of("slot"), "--slot must assigned, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e");
-        let hash_hex = if let Some(input) = sub_arg_matches.value_of("input") {
-            hex::encode(sha256(input))
-        } else {
-            opt_value_result!(sub_arg_matches.value_of("hash-hex"), "--hash-hex must assigned").to_string()
-        };
+        let hash_bytes = argsutil::get_sha256_digest_or_hash(sub_arg_matches)?;
         let (algorithm, algorithm_str) = match sub_arg_matches.value_of("algorithm") {
             None | Some("p256") => (AlgorithmId::EccP256, "ecdsa_p256_with_sha256"),
             Some("p384") => (AlgorithmId::EccP384, "ecdsa_p384_with_sha256"),
@@ -52,8 +48,6 @@ impl Command for CommandImpl {
         if let Some(pin) = pin_opt {
             opt_result!(yk.verify_pin(pin.as_bytes()), "YubiKey verify pin failed: {}");
         }
-
-        let hash_bytes = opt_result!(hex::decode(hash_hex), "Parse hash in hex failed: {}");
 
         if let Ok(slot_metadata) = metadata(&mut yk, slot_id) {
             match slot_metadata.algorithm {

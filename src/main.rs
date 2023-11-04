@@ -13,6 +13,7 @@ mod rsautil;
 mod pkiutil;
 mod hmacutil;
 mod ecdsautil;
+mod argsutil;
 mod pgpcardutil;
 mod cmd_list;
 mod cmd_u2fregister;

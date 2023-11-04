@@ -168,6 +168,7 @@ impl Command for CommandImpl {
                         }
                     }
                 }
+                #[allow(deprecated)]
                 Packet::MDC(mdc) => {
                     information!("Found MDC: {:?}", mdc);
                 }
