@@ -1,7 +1,8 @@
 use openssl::bn::{BigNum, BigNumContext};
 use openssl::pkey::PKey;
 use openssl::rsa::{Padding, Rsa};
-use rust_util::XResult;
+use rust_util::{util_msg, XResult};
+use rust_util::util_msg::MessageType;
 
 #[derive(Debug)]
 pub struct RsaCrt {
@@ -111,4 +112,42 @@ fn inner_from(p: BigNum, q: BigNum, e: BigNum) -> XResult<RsaCrt> {
         exponent2: dq,
         coefficient: qinv,
     })
+}
+
+pub fn pkcs15_rsa_2048_sign_padding(sha256: &[u8]) -> Vec<u8> {
+    // https://www.ibm.com/docs/en/zos/2.2.0?topic=cryptography-pkcs-1-formats
+    // MD5  X’3020300C 06082A86 4886F70D 02050500 0410’ || 16-byte hash value
+    // SHA-1  X'30213009 06052B0E 03021A05 000414’ || 20-byte hash value
+    // SHA-224  X’302D300D 06096086 48016503 04020405 00041C’ || 28-byte hash value
+    // SHA-256  X’3031300D 06096086 48016503 04020105 000420’ || 32-byte hash value
+    // SHA-384  X’3041300D 06096086 48016503 04020205 000430’ || 48-byte hash value
+    // SHA-512  X’3051300D 06096086 48016503 04020305 000440’ || 64-byte hash value
+    let sha256_der_prefix = hex::decode("3031300d060960864801650304020105000420").unwrap();
+
+    let mut hash_with_oid = Vec::with_capacity(128);
+    hash_with_oid.extend_from_slice(&sha256_der_prefix);
+    hash_with_oid.extend_from_slice(&sha256);
+    let hash_padding = pkcs1_padding_for_sign(&hash_with_oid, 2048).unwrap();
+    util_msg::when(MessageType::DEBUG, || {
+        debugging!("Hash: {}", hex::encode(&sha256));
+        debugging!("Hash with OID: {}", hex::encode(&hash_with_oid));
+        debugging!("PKCS1 padding: {}", hex::encode(&hash_padding));
+    });
+    hash_padding
+}
+
+fn pkcs1_padding_for_sign(bs: &[u8], bit_len: usize) -> XResult<Vec<u8>> {
+    let byte_len = bit_len / 8;
+    let max_len = byte_len - (1 + 1 + 8 + 2);
+    if bs.len() > max_len {
+        return simple_error!("Length is too large: {} > {}", bs.len(), max_len);
+    }
+    let mut output = Vec::<u8>::with_capacity(byte_len);
+    output.push(0x00);
+    output.push(0x01);
+    let ps_len = byte_len - bs.len() - (1 + 1 + 1);
+    output.extend_from_slice(&vec![0xff_u8; ps_len]);
+    output.push(0x00);
+    output.extend_from_slice(bs);
+    Ok(output)
 }

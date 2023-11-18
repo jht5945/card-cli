@@ -1,6 +1,6 @@
 [package]
 name = "card-cli"
-version = "1.7.10"
+version = "1.8.0"
 authors = ["Hatter Jiang <jht5945@gmail.com>"]
 edition = "2018"
 
@@ -38,6 +38,7 @@ tabled = "0.14.0"
 env_logger = "0.10"
 bech32 = "0.9.1"
 ecdsa = { version = "0.16.8", features = ["verifying", "spki", "pem", "der"] }
+jwt = "0.16.0"
 #lazy_static = "1.4.0"
 #ssh-key = "0.4.0"
 #ctap-hid-fido2 = "2.1.3"

@@ -48,4 +48,4 @@ define_copy_array!(copy_sha256, 0x20);
 define_copy_array!(copy_sha384, 0x30);
 define_copy_array!(copy_sha512, 0x40);
 
-define_copy_array!(copy_rsa2048, 0x100);
+// define_copy_array!(copy_rsa2048, 0x100);
