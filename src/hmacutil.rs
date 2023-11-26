@@ -19,15 +19,14 @@ pub fn get_challenge_bytes(sub_arg_matches: &ArgMatches) -> XResult<Vec<u8>> {
     Ok(challenge_bytes)
 }
 
-pub fn calculate_hmac_sha1_result(secret_bytes: &Vec<u8>, challenge_bytes: &Vec<u8>, variable: bool) -> [u8; 20] {
-    let hmac_key = HmacKey::from_slice(&secret_bytes);
+pub fn calculate_hmac_sha1_result(secret_bytes: &[u8], challenge_bytes: &[u8], variable: bool) -> [u8; 20] {
+    let hmac_key = HmacKey::from_slice(secret_bytes);
     let mut challenge = [0; 64];
     if variable && challenge_bytes.last() == Some(&0) {
         challenge = [0xff; 64];
     }
-    (&mut challenge[..challenge_bytes.len()]).copy_from_slice(&challenge_bytes);
-    let hmac_result = hmac_sha1(&hmac_key, &challenge);
-    hmac_result
+    challenge[..challenge_bytes.len()].copy_from_slice(challenge_bytes);
+    hmac_sha1(&hmac_key, &challenge)
 }
 
 

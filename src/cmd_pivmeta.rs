@@ -7,10 +7,10 @@ use rust_util::util_msg;
 use rust_util::util_msg::MessageType;
 use x509_parser::parse_x509_certificate;
 use yubikey::{Key, YubiKey};
-use yubikey::piv::{AlgorithmId, metadata, Origin};
+use yubikey::piv::{AlgorithmId, metadata};
 
 use crate::pivutil;
-use crate::pivutil::{get_algorithm_id, slot_equals, ToStr};
+use crate::pivutil::{get_algorithm_id_by_certificate, slot_equals, ToStr};
 use crate::pkiutil::bytes_to_pem;
 
 pub struct CommandImpl;
@@ -57,11 +57,7 @@ impl Command for CommandImpl {
                 }
             }
 
-            let origin_str = match meta.origin {
-                None => "none",
-                Some(Origin::Imported) => "imported",
-                Some(Origin::Generated) => "generated",
-            };
+            let origin_str = meta.origin.to_str();
             if json_output {
                 json.insert("origin", origin_str.to_string());
             } else {
@@ -77,7 +73,7 @@ impl Command for CommandImpl {
                 let cert = &k.certificate().cert.tbs_certificate;
                 let slot_str = format!("{:x}", Into::<u8>::into(k.slot()));
                 if slot_equals(&slot_id, &slot_str) {
-                    if let Ok(algorithm_id) = get_algorithm_id(&k.certificate().cert.tbs_certificate.subject_public_key_info) {
+                    if let Ok(algorithm_id) = get_algorithm_id_by_certificate(k.certificate()) {
                         let algorithm_str = algorithm_id.to_str();
                         json.insert("algorithm", algorithm_str.to_string());
 

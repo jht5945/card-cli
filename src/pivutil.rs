@@ -3,7 +3,7 @@ use spki::{ObjectIdentifier, SubjectPublicKeyInfoOwned};
 use spki::der::{Decode, Encode};
 use x509_parser::prelude::FromDer;
 use x509_parser::public_key::RSAPublicKey;
-use yubikey::{PinPolicy, TouchPolicy};
+use yubikey::{Certificate, PinPolicy, TouchPolicy};
 use yubikey::piv::{AlgorithmId, ManagementAlgorithmId, ManagementSlotId, Origin, RetiredSlotId};
 use yubikey::piv::SlotId;
 
@@ -104,6 +104,20 @@ impl ToStr for Origin {
             Origin::Generated => "generated",
         }
     }
+}
+
+impl ToStr for Option<Origin> {
+    fn to_str(&self) -> &str {
+        match self {
+            None => "none",
+            Some(origin) => origin.to_str(),
+        }
+    }
+}
+
+pub fn get_algorithm_id_by_certificate(certificate: &Certificate) -> XResult<AlgorithmId> {
+    let tbs_certificate = &certificate.cert.tbs_certificate;
+    get_algorithm_id(&tbs_certificate.subject_public_key_info)
 }
 
 pub fn get_algorithm_id(public_key_info: &SubjectPublicKeyInfoOwned) -> XResult<AlgorithmId> {

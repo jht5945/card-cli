@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
+use openssl::rsa::{Padding, Rsa};
 use rust_util::{util_msg, XResult};
 use rust_util::util_clap::{Command, CommandError};
 use yubikey::{Key, YubiKey};
@@ -45,7 +46,7 @@ impl Command for CommandImpl {
         if let Some(key) = find_key(&slot_id)? {
             let certificate = key.certificate();
             let tbs_certificate = &certificate.cert.tbs_certificate;
-            if let Ok(algorithm_id) = pivutil::get_algorithm_id(&tbs_certificate.subject_public_key_info) {
+            if let Ok(algorithm_id) = pivutil::get_algorithm_id_by_certificate(certificate) {
                 let public_key_bit_string = &tbs_certificate.subject_public_key_info.subject_public_key;
                 match algorithm_id {
                     AlgorithmId::EccP256 | AlgorithmId::EccP384 => {
@@ -78,9 +79,21 @@ impl Command for CommandImpl {
                     }
                     AlgorithmId::Rsa1024 | AlgorithmId::Rsa2048 => {
                         let pk_rsa = public_key_bit_string.raw_bytes();
-                        // TODO ...
+
+                        let keypair = opt_result!(Rsa::public_key_from_der_pkcs1(pk_rsa), "Parse RSA failed: {}");
+                        // let pub_key_der = opt_result!(keypair.public_key_to_der(), "RSA public key to der failed: {}");
+                        // let pub_key_fingerprint = hex::encode(sha256_bytes(&pub_key_der));
+                        let mut dmesg = vec![0; ((keypair.n().num_bits() + 7) / 8) as usize];
+                        let len = opt_result!(keypair.public_decrypt(&signature, &mut dmesg, Padding::NONE), "RSA public key calc failed: {}");
                         debugging!("RSA public key pem: {}", hex::encode(pk_rsa));
-                        failure!("Current NOT supported.");
+                        debugging!("Public key calc: {}, len: {}", hex::encode(&dmesg), len);
+
+                        // TODO SHOULD IMPROVE VERIFICATION METHOD IN THE FUTURE
+                        if hex::encode(dmesg).ends_with(&hex::encode(&hash_bytes)) {
+                            success!("Verify RSA Sign succeed.");
+                        } else {
+                            failure!("Verify RSA Sign failed.");
+                        }
                     }
                 }
             }
@@ -99,7 +112,7 @@ fn find_key(slot_id: &SlotId) -> XResult<Option<Key>> {
         Err(e) => warning!("List keys failed: {}", e),
         Ok(keys) => for k in keys {
             let slot_str = format!("{:x}", Into::<u8>::into(k.slot()));
-            if slot_equals(&slot_id, &slot_str) {
+            if slot_equals(slot_id, &slot_str) {
                 return Ok(Some(k));
             }
         },

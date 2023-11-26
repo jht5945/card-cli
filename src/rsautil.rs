@@ -114,7 +114,7 @@ fn inner_from(p: BigNum, q: BigNum, e: BigNum) -> XResult<RsaCrt> {
     })
 }
 
-pub fn pkcs15_rsa_2048_sign_padding(sha256: &[u8]) -> Vec<u8> {
+pub fn pkcs15_sha256_rsa_2048_padding_for_sign(sha256: &[u8]) -> Vec<u8> {
     // https://www.ibm.com/docs/en/zos/2.2.0?topic=cryptography-pkcs-1-formats
     // MD5  X’3020300C 06082A86 4886F70D 02050500 0410’ || 16-byte hash value
     // SHA-1  X'30213009 06052B0E 03021A05 000414’ || 20-byte hash value
@@ -126,10 +126,10 @@ pub fn pkcs15_rsa_2048_sign_padding(sha256: &[u8]) -> Vec<u8> {
 
     let mut hash_with_oid = Vec::with_capacity(128);
     hash_with_oid.extend_from_slice(&sha256_der_prefix);
-    hash_with_oid.extend_from_slice(&sha256);
+    hash_with_oid.extend_from_slice(sha256);
     let hash_padding = pkcs1_padding_for_sign(&hash_with_oid, 2048).unwrap();
     util_msg::when(MessageType::DEBUG, || {
-        debugging!("Hash: {}", hex::encode(&sha256));
+        debugging!("Hash: {}", hex::encode(sha256));
         debugging!("Hash with OID: {}", hex::encode(&hash_with_oid));
         debugging!("PKCS1 padding: {}", hex::encode(&hash_padding));
     });

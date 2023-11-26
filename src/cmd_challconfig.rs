@@ -36,29 +36,31 @@ impl Command for CommandImpl {
         }
 
         let mut yubi = Yubico::new();
-        if let Ok(device) = yubi.find_yubikey() {
-            success!("Found key, Vendor ID: {:?} Product ID {:?}", device.vendor_id, device.product_id);
-
-            let config = Config::default()
-                .set_vendor_id(device.vendor_id)
-                .set_product_id(device.product_id)
-                .set_command(yubico_manager::config::Command::Configuration2);
-
-            let hmac_key: HmacKey = HmacKey::from_slice(&secret_bytes);
-            let button_press = sub_arg_matches.is_present("button-press");
-            information!("Button press: {}", button_press);
-
-            let mut device_config = DeviceModeConfig::default();
-            device_config.challenge_response_hmac(&hmac_key, false, button_press);
-
-            if let Err(err) = yubi.write_config(config, &mut device_config) {
-                failure!("Config device failed: {:?}", err);
-            } else {
-                success!("Device configured");
+        let device = match yubi.find_yubikey() {
+            Ok(device) => device,
+            Err(_) => {
+                warning!("YubiKey not found");
+                return Ok(Some(1));
             }
+        };
+
+        success!("Found key, Vendor ID: {:?} Product ID {:?}", device.vendor_id, device.product_id);
+        let config = Config::default()
+            .set_vendor_id(device.vendor_id)
+            .set_product_id(device.product_id)
+            .set_command(yubico_manager::config::Command::Configuration2);
+
+        let hmac_key: HmacKey = HmacKey::from_slice(&secret_bytes);
+        let button_press = sub_arg_matches.is_present("button-press");
+        information!("Button press: {}", button_press);
+
+        let mut device_config = DeviceModeConfig::default();
+        device_config.challenge_response_hmac(&hmac_key, false, button_press);
+
+        if let Err(err) = yubi.write_config(config, &mut device_config) {
+            failure!("Config device failed: {:?}", err);
         } else {
-            warning!("YubiKey not found");
-            return Ok(Some(1));
+            success!("Device configured");
         }
 
         Ok(None)

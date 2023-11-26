@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
-use rust_util::util_msg;
 use rust_util::util_clap::{Command, CommandError};
+use rust_util::util_msg;
 use yubikey::{piv, YubiKey};
 use yubikey::piv::{AlgorithmId, SlotId};
 
-use crate::rsautil;
+use crate::{pivutil, rsautil};
 use crate::util::base64_encode;
 
 pub struct CommandImpl;
@@ -16,6 +16,7 @@ impl Command for CommandImpl {
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("PIV RSA Sign(with SHA256) subcommand")
+            .arg(Arg::with_name("slot").short("s").long("slot").takes_value(true).help("PIV slot, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e"))
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).default_value("123456").help("OpenPGP card user pin"))
             .arg(Arg::with_name("sha256").short("2").long("sha256").takes_value(true).help("Digest SHA256 HEX"))
             .arg(Arg::with_name("json").long("json").help("JSON output"))
@@ -33,15 +34,22 @@ impl Command for CommandImpl {
         let mut yk = opt_result!(YubiKey::open(), "YubiKey not found: {}");
         opt_result!(yk.verify_pin(pin.as_bytes()), "YubiKey verify pin failed: {}");
 
+        let slot_id = match sub_arg_matches.value_of("slot") {
+            None => SlotId::Signature,
+            Some(slot) => pivutil::get_slot_id(slot)?,
+        };
+        information!("Using slot: {}", slot_id);
+
         if let Some(sha256_hex) = sha256_hex_opt {
             let sha256 = opt_result!(hex::decode(sha256_hex), "Decode sha256 failed: {}");
-            let raw_in = rsautil::pkcs15_rsa_2048_sign_padding(&sha256);
-            let sign_result = piv::sign_data(&mut yk, &raw_in, AlgorithmId::Rsa2048, SlotId::Signature);
+            let raw_in = rsautil::pkcs15_sha256_rsa_2048_padding_for_sign(&sha256);
+            let sign_result = piv::sign_data(&mut yk, &raw_in, AlgorithmId::Rsa2048, slot_id);
             let sign = opt_result!(sign_result, "Sign data failed: {}");
             let sign_bytes = sign.as_slice();
 
             if json_output {
                 let mut json = BTreeMap::<&'_ str, String>::new();
+                json.insert("slot", pivutil::to_slot_hex(&slot_id));
                 json.insert("hash_hex", hex::encode(&sha256));
                 json.insert("sign_hex", hex::encode(sign_bytes));
                 json.insert("sign_base64", base64_encode(sign_bytes));

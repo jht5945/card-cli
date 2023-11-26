@@ -8,7 +8,7 @@ use x509_parser::parse_x509_certificate;
 use yubikey::{Certificate, YubiKey};
 use yubikey::piv::{metadata, SlotId};
 
-use crate::pivutil::{get_algorithm_id, ORDERED_SLOTS, ToStr};
+use crate::pivutil::{get_algorithm_id_by_certificate, ORDERED_SLOTS, ToStr};
 
 const NA: &str = "N/A";
 
@@ -120,7 +120,7 @@ fn print_summary_info(yubikey: &mut YubiKey, slot: SlotId, piv_slots: &mut Vec<P
         }
     };
     let buf_vec = cert.cert.to_der()?;
-    let algorithm_id = get_algorithm_id(&cert.cert.tbs_certificate.subject_public_key_info)
+    let algorithm_id = get_algorithm_id_by_certificate(&cert)
         .map(|aid| format!("{:?}", aid))
         .unwrap_or_else(|e| format!("Error: {}", e));
     let cert_subject = match parse_x509_certificate(&buf_vec) {

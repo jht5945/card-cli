@@ -1,12 +1,12 @@
 [package]
 name = "card-cli"
-version = "1.8.0"
+version = "1.8.4"
 authors = ["Hatter Jiang <jht5945@gmail.com>"]
 edition = "2018"
 
 [dependencies]
 authenticator = "0.3"
-clap = "2.34"
+clap = "2.0"
 rust_util = { version = "0.6", features = ["use_clap"] }
 digest = "0.10"
 sha1 = "0.10"
@@ -20,7 +20,7 @@ u2f = "0.2"
 openpgp-card = "0.3"
 openpgp-card-pcsc = "0.3"
 openpgp-card-sequoia = "0.1"
-sequoia-openpgp = "1.13"
+sequoia-openpgp = "1.0"
 chrono = "0.4"
 simpledateformat = "0.1"
 ring = "0.17"
@@ -32,13 +32,14 @@ x509 = "0.2"
 x509-parser = "0.15"
 ssh-agent = { version = "0.2", features = ["agent"] }
 p256 = { version = "0.13", features = ["pem", "ecdh"] }
-p384 = { version = "0.13.0", features = ["pem", "ecdh"] }
+p384 = { version = "0.13", features = ["pem", "ecdh"] }
 spki = { version = "0.7", features = ["pem"] }
-tabled = "0.14.0"
+tabled = "0.14"
 env_logger = "0.10"
-bech32 = "0.9.1"
-ecdsa = { version = "0.16.8", features = ["verifying", "spki", "pem", "der"] }
+bech32 = "0.9"
+ecdsa = { version = "0.16", features = ["verifying", "spki", "pem", "der"] }
 jwt = "0.16.0"
+reqwest = { version = "0.11", features = ["blocking"] }
 #lazy_static = "1.4.0"
 #ssh-key = "0.4.0"
 #ctap-hid-fido2 = "2.1.3"

@@ -66,9 +66,7 @@ impl Command for CommandImpl {
 
         let token_string = sign_jwt(slot, &pin_opt, header, &payload, &jwt_claims)?;
         success!("Singed JWT: {}", token_string);
-        if json_output {
-            json.insert("token", token_string.clone());
-        }
+        if json_output { json.insert("token", token_string.clone()); }
 
         if json_output {
             println!("{}", serde_json::to_string_pretty(&json).unwrap());
@@ -114,7 +112,8 @@ fn sign_jwt(slot: &str, pin_opt: &Option<&str>, mut header: Header, payload: &Op
     tobe_signed.extend_from_slice(SEPARATOR.as_bytes());
     tobe_signed.extend_from_slice(claims.as_bytes());
     let raw_in = match jwt_algorithm {
-        AlgorithmType::Rs256 => rsautil::pkcs15_rsa_2048_sign_padding(&digest::sha256_bytes(&tobe_signed)),
+        AlgorithmType::Rs256 => rsautil::pkcs15_sha256_rsa_2048_padding_for_sign(
+            &digest::sha256_bytes(&tobe_signed)),
         AlgorithmType::Es256 => digest::sha256_bytes(&tobe_signed),
         AlgorithmType::Es384 => digest::sha384_bytes(&tobe_signed),
         _ => return simple_error!("SHOULD NOT HAPPEN: {:?}", jwt_algorithm),

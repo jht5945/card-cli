@@ -31,24 +31,26 @@ impl Command for CommandImpl {
         let challenge_bytes = hmacutil::get_challenge_bytes(sub_arg_matches)?;
 
         let mut yubi = Yubico::new();
-        if let Ok(device) = yubi.find_yubikey() {
-            success!("Found key, Vendor ID: {:?}, Product ID: {:?}", device.vendor_id, device.product_id);
+        let device = match yubi.find_yubikey() {
+            Ok(device) => device,
+            Err(_) => {
+                warning!("YubiKey not found");
+                return Ok(Some(1));
+            }
+        };
 
-            let config = Config::default()
-                .set_vendor_id(device.vendor_id)
-                .set_product_id(device.product_id)
-                .set_variable_size(true)
-                .set_mode(Mode::Sha1)
-                .set_slot(Slot::Slot2);
+        success!("Found key, Vendor ID: {:?}, Product ID: {:?}", device.vendor_id, device.product_id);
+        let config = Config::default()
+            .set_vendor_id(device.vendor_id)
+            .set_product_id(device.product_id)
+            .set_variable_size(true)
+            .set_mode(Mode::Sha1)
+            .set_slot(Slot::Slot2);
 
-            // In HMAC Mode, the result will always be the SAME for the SAME provided challenge
-            let hmac_result = opt_result!(yubi.challenge_response_hmac(&challenge_bytes, config), "Challenge HMAC failed: {}");
+        // In HMAC Mode, the result will always be the SAME for the SAME provided challenge
+        let hmac_result = opt_result!(yubi.challenge_response_hmac(&challenge_bytes, config), "Challenge HMAC failed: {}");
 
-            hmacutil::output_hmac_result(sub_arg_matches, json_output, challenge_bytes, hmac_result.deref());
-        } else {
-            warning!("YubiKey not found");
-            return Ok(Some(1));
-        }
+        hmacutil::output_hmac_result(sub_arg_matches, json_output, challenge_bytes, hmac_result.deref());
 
         Ok(None)
     }
