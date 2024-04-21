@@ -43,6 +43,8 @@ mod cmd_sshagent;
 mod cmd_pgpageaddress;
 mod cmd_signjwt;
 mod cmd_signfile;
+mod cmd_verifyfile;
+mod signfile;
 
 pub struct DefaultCommandImpl;
 
@@ -98,6 +100,7 @@ fn inner_main() -> CommandError {
         Box::new(cmd_pgpageaddress::CommandImpl),
         Box::new(cmd_signjwt::CommandImpl),
         Box::new(cmd_signfile::CommandImpl),
+        Box::new(cmd_verifyfile::CommandImpl),
     ];
     let mut app = App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))

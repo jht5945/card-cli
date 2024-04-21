@@ -3,7 +3,7 @@ use std::time::SystemTime;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use rust_util::{util_msg, XResult};
 use rust_util::util_clap::{Command, CommandError};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use spki::der::Encode;
 use x509_parser::nom::AsBytes;
 use yubikey::{Key, YubiKey};
@@ -11,117 +11,8 @@ use yubikey::piv::{sign_data, SlotId};
 
 use crate::{argsutil, pivutil};
 use crate::digest::sha256_bytes;
+use crate::signfile::{CERTIFICATES_SEARCH_URL, HASH_ALGORITHM_SHA256, SIGNATURE_ALGORITHM_SHA256_WITH_ECDSA, SignFileRequest, SIMPLE_SIG_SCHEMA, SimpleSignFile, SimpleSignFileSignature};
 use crate::util::base64_encode;
-
-pub const SIMPLE_SIG_V1: &str = "v1";
-pub const SIMPLE_SIG_SCHEMA: &str = "https://openwebstandard.org/simple-sign-file/v1";
-pub const HASH_ALGORITHM_SHA256: &str = "sha256";
-pub const SIGNATURE_ALGORITHM_SHA256_WITH_ECDSA: &str = "SHA256withECDSA";
-pub const CERTIFICATES_SEARCH_URL: &str = "https://hatter.ink/ca/fetch_certificates.json?fingerprint=";
-
-pub struct SignFileRequest {
-    pub filename: Option<String>,
-    pub digest: Vec<u8>,
-    pub timestamp: i64,
-    pub attributes: Option<String>,
-    pub comment: Option<String>,
-}
-
-impl SignFileRequest {
-    pub fn get_tobe_signed(&self) -> Vec<u8> {
-        let mut tobe_signed = vec![];
-        // "v1"||TLV(filename)||TLV(timestamp)||TLV(attributes)||TLV(comment)||TLV(digest)
-        debugging!("Tobe signed version: {}", SIMPLE_SIG_V1);
-        tobe_signed.extend_from_slice(SIMPLE_SIG_V1.as_bytes());
-        let tobe_signed_filename = SignFileTlv::Filename(self.filename.clone()).to_byes();
-        debugging!("Tobe signed filename: {} ({:?})", hex::encode(&tobe_signed_filename), &self.filename);
-        tobe_signed.extend_from_slice(&tobe_signed_filename);
-        let tobe_signed_timestamp = SignFileTlv::Timestamp(self.timestamp.clone()).to_byes();
-        debugging!("Tobe signed timestamp: {} ({})", hex::encode(&tobe_signed_timestamp), &self.timestamp);
-        tobe_signed.extend_from_slice(&tobe_signed_timestamp);
-        let tobe_signed_attributes = SignFileTlv::Attributes(self.attributes.clone()).to_byes();
-        debugging!("Tobe signed attributes: {} ({:?})", hex::encode(&tobe_signed_attributes), &self.attributes);
-        tobe_signed.extend_from_slice(&tobe_signed_attributes);
-        let tobe_signed_comment = SignFileTlv::Comment(self.comment.clone()).to_byes();
-        debugging!("Tobe signed comment: {} ({:?})", hex::encode(&tobe_signed_comment), &self.comment);
-        tobe_signed.extend_from_slice(&tobe_signed_comment);
-        let tobe_signed_digest = SignFileTlv::Digest(self.digest.clone()).to_byes();
-        debugging!("Tobe signed digest: {}", hex::encode(&tobe_signed_digest));
-        tobe_signed.extend_from_slice(&tobe_signed_digest);
-        tobe_signed
-    }
-}
-
-pub enum SignFileTlv {
-    Filename(Option<String>),
-    Timestamp(i64),
-    Attributes(Option<String>),
-    Comment(Option<String>),
-    Digest(Vec<u8>),
-}
-
-impl SignFileTlv {
-    pub fn tag(&self) -> u8 {
-        match self {
-            SignFileTlv::Filename(_) => 0,
-            SignFileTlv::Timestamp(_) => 1,
-            SignFileTlv::Attributes(_) => 2,
-            SignFileTlv::Comment(_) => 3,
-            SignFileTlv::Digest(_) => 254,
-        }
-    }
-
-    pub fn to_byes(&self) -> Vec<u8> {
-        let mut bytes = vec![];
-        bytes.push(self.tag());
-        match self {
-            SignFileTlv::Timestamp(timestamp) => {
-                bytes.extend_from_slice(&timestamp.to_be_bytes());
-            }
-            SignFileTlv::Filename(value)
-            | SignFileTlv::Attributes(value)
-            | SignFileTlv::Comment(value) => {
-                Self::extends_bytes(&mut bytes, match value {
-                    None => &[],
-                    Some(value) => value.as_bytes(),
-                });
-            }
-            SignFileTlv::Digest(digest) => {
-                Self::extends_bytes(&mut bytes, digest);
-            }
-        }
-        bytes
-    }
-
-    fn extends_bytes(bytes: &mut Vec<u8>, b: &[u8]) {
-        if b.len() > u16::MAX as usize {
-            panic!("Cannot more than: {}", u16::MAX);
-        }
-        bytes.extend_from_slice(&(b.len() as u16).to_be_bytes());
-        bytes.extend_from_slice(b);
-    }
-}
-
-#[derive(Serialize)]
-pub struct SimpleSignFileSignature {
-    pub algorithm: String,
-    pub signature: String,
-    pub certificates: Vec<String>,
-}
-
-#[derive(Serialize)]
-pub struct SimpleSignFile {
-    pub schema: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub filename: Option<String>,
-    pub digest: String,
-    pub timestamp: i64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub attributes: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub comment: Option<String>,
-    pub signatures: Vec<SimpleSignFileSignature>,
-}
 
 pub struct CommandImpl;
 
@@ -196,8 +87,8 @@ impl Command for CommandImpl {
         let filename_opt = match filename_opt {
             Some(filename) => Some(filename),
             None => sub_arg_matches.value_of("file").map(|f| {
-                if f.contains("/") {
-                    f.split("/").last().unwrap().to_string()
+                if f.contains('/') {
+                    f.split('/').last().unwrap().to_string()
                 } else {
                     f.to_string()
                 }
@@ -218,11 +109,11 @@ impl Command for CommandImpl {
 
         let signed_data = opt_result!(sign_data(&mut yk, &tobe_signed_digest, algorithm_id, slot_id), "Sign PIV failed: {}");
         let signature_bytes = signed_data.as_slice();
-        debugging!("Tobe signed signature: {}", hex::encode(&signature_bytes));
+        debugging!("Tobe signed signature: {}", hex::encode(signature_bytes));
 
         let signature = SimpleSignFileSignature {
             algorithm: SIGNATURE_ALGORITHM_SHA256_WITH_ECDSA.to_string(),
-            signature: format!("{}", base64_encode(&signature_bytes)),
+            signature: base64_encode(signature_bytes),
             certificates,
         };
         let simple_sig = SimpleSignFile {
@@ -254,7 +145,7 @@ struct FetchCertificateResponse {
 
 fn fetch_certificates(fingerprint: &str) -> XResult<Vec<String>> {
     let url = format!("{}{}", CERTIFICATES_SEARCH_URL, fingerprint);
-    let certificates_response = opt_result!( reqwest::blocking::get(&url), "Fetch certificates failed: {}");
+    let certificates_response = opt_result!( reqwest::blocking::get(url), "Fetch certificates failed: {}");
     let certificates_response_bytes = opt_result!(certificates_response.bytes(), "Fetch certificates failed: {}");
     let response = opt_result!(
         serde_json::from_slice::<FetchCertificateResponse>(certificates_response_bytes.as_bytes()),

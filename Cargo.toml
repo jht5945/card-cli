@@ -1,6 +1,6 @@
 [package]
 name = "card-cli"
-version = "1.8.4"
+version = "1.9.0"
 authors = ["Hatter Jiang <jht5945@gmail.com>"]
 edition = "2018"
 
@@ -29,7 +29,7 @@ pem = "3.0"
 yubikey = { version = "0.8", features = ["untested"] }
 yubico_manager = "0.9"
 x509 = "0.2"
-x509-parser = "0.15"
+x509-parser = { version = "0.15", features = ["verify"] }
 ssh-agent = { version = "0.2", features = ["agent"] }
 p256 = { version = "0.13", features = ["pem", "ecdh"] }
 p384 = { version = "0.13", features = ["pem", "ecdh"] }
