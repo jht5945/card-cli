@@ -3,7 +3,6 @@ use std::ops::Add;
 use std::time::{Duration, SystemTime};
 
 use clap::{App, Arg, ArgMatches, SubCommand};
-use p384::ecdsa::signature::hazmat::PrehashVerifier;
 use rust_util::util_clap::{Command, CommandError};
 use rust_util::util_msg;
 use x509_parser::parse_x509_certificate;
@@ -24,18 +23,18 @@ impl Command for CommandImpl {
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("PIV Verify(with SHA256) subcommand")
             .arg(Arg::with_name("file").short("f").long("file").takes_value(true).required(false).help("Input file"))
-            .arg(Arg::with_name("filename").short("n").long("filename").takes_value(true).help("Filename"))
+            .arg(Arg::with_name("sign-file").short("S").long("sign-file").takes_value(true).help("Sign file"))
     }
 
     fn run(&self, _arg_matches: &ArgMatches, sub_arg_matches: &ArgMatches) -> CommandError {
         util_msg::set_logger_std_out(false);
 
-        let filename = sub_arg_matches.value_of("filename").map(ToString::to_string).unwrap();
-        let file_content = opt_result!(fs::read_to_string(&filename), "Read file: {}, failed: {}", filename);
-        let simple_sign_file: SimpleSignFile = opt_result!(serde_json::from_str(&file_content), "Parse file: {}, failed: {}", filename);
+        let sign_file = sub_arg_matches.value_of("sign-file").map(ToString::to_string).unwrap();
+        let sign_file_content = opt_result!(fs::read_to_string(&sign_file), "Read file: {}, failed: {}", sign_file);
+        let simple_sign_file: SimpleSignFile = opt_result!(serde_json::from_str(&sign_file_content), "Parse file: {}, failed: {}", sign_file);
 
         if SIMPLE_SIG_SCHEMA != simple_sign_file.schema {
-            return simple_error!("File: {} format error: bad schema", filename);
+            return simple_error!("File: {} format error: bad schema", sign_file);
         }
         information!("File name: {}", simple_sign_file.filename.as_deref().unwrap_or("<none>"));
         information!("Digest: {}", &simple_sign_file.digest);
@@ -111,12 +110,13 @@ impl Command for CommandImpl {
                 // PublicKey::RSA(_) => {}
                 PublicKey::EC(ec_point) => {
                     if ec_point.key_size() != 384 {
-                        return simple_error!("Only support p384");
+                        return simple_error!("Current only support p384");
                     }
-                    let p384_verifying_key = opt_result!(p384::ecdsa::VerifyingKey::from_sec1_bytes(ec_point.data()), "Parse public key failed: {}");
-                    let sig = opt_result!(p384::ecdsa::DerSignature::from_bytes(&signature_bytes), "Parse signature failed: {}");
+                    use p384::ecdsa::{DerSignature, signature::hazmat::PrehashVerifier, VerifyingKey};
+                    let p384_verifying_key = opt_result!(VerifyingKey::from_sec1_bytes(ec_point.data()), "Parse public key failed: {}");
+                    let sig = opt_result!(DerSignature::from_bytes(&signature_bytes), "Parse signature failed: {}");
                     match p384_verifying_key.verify_prehash(&tobe_signed_digest, &sig) {
-                        Ok(_) => success!("Verify leaf certificate signature succeed."),
+                        Ok(_) => success!("Verify leaf certificate signature success"),
                         Err(e) => return simple_error!("Verify leaf certificate signature failed: {}", e),
                     }
                 }

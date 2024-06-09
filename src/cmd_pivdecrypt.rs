@@ -12,7 +12,7 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "piv-decrypt" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("PIV Sign subcommand")
+        SubCommand::with_name(self.name()).about("PIV Decrypt(RSA) subcommand")
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).default_value("123456").help("OpenPGP card user pin"))
             .arg(Arg::with_name("encrypted-data").long("encrypted-data").takes_value(true).help("Encrypted data"))
             .arg(Arg::with_name("json").long("json").help("JSON output"))

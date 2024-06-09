@@ -1,3 +1,4 @@
+use std::fs;
 use std::time::SystemTime;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -44,6 +45,7 @@ impl Command for CommandImpl {
                 .takes_value(true).required(true).help("PIV slot, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e"))
             .arg(Arg::with_name("file").short("f").long("file").takes_value(true).required(true).help("Input file"))
             .arg(Arg::with_name("filename").short("n").long("filename").takes_value(true).help("Filename"))
+            .arg(Arg::with_name("sign-file").short("S").long("sign-file").takes_value(false).help("Sign file"))
             .arg(Arg::with_name("comment").short("c").long("comment").takes_value(true).help("Comment"))
             .arg(Arg::with_name("attributes").short("a").long("attributes").takes_value(true).help("Attributes"))
     }
@@ -94,9 +96,15 @@ impl Command for CommandImpl {
                 }
             }),
         };
+        let sign_file = sub_arg_matches.value_of("sign-file").map(ToString::to_string).or_else(|| {
+            filename_opt.clone().map(|f| format!("{}.simple-sig", f))
+        });
 
         let sign_file_request = SignFileRequest {
-            filename: filename_opt,
+            filename: match filename_opt {
+                None => None,
+                Some(filename) => iff!(filename.is_empty(), None, Some(filename)),
+            },
             digest: file_digest.clone(),
             timestamp: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() as i64,
             attributes: attributes_opt,
@@ -126,7 +134,19 @@ impl Command for CommandImpl {
             signatures: vec![signature],
         };
 
-        println!("{}", serde_json::to_string_pretty(&simple_sig).unwrap());
+        let sign_file_content = serde_json::to_string_pretty(&simple_sig).unwrap();
+        if let Some(sign_file) = sign_file {
+            if fs::read(&sign_file).is_ok() {
+                warning!("Simple sign file: {} exists", sign_file);
+            } else {
+                match fs::write(&sign_file, &sign_file_content) {
+                    Ok(_) => success!("Write simple sign file: {} succeed", sign_file),
+                    Err(e) => failure!("Write simple sign file: {} failed: {}", sign_file, e),
+                }
+            }
+        }
+
+        println!("{}", sign_file_content);
         Ok(None)
     }
 }
