@@ -10,7 +10,7 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "pgp-card-admin" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("OpenPGP Card Admin subcommand")
+        SubCommand::with_name(self.name()).about("OpenPGP Card admin subcommand")
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).default_value("12345678").help("OpenPGP card admin pin"))
             .arg(Arg::with_name("pass").long("pass").takes_value(true).help("[deprecated] now OpenPGP card admin pin"))
             .arg(Arg::with_name("name").short("n").long("name").takes_value(true).required(false).help("Set name"))

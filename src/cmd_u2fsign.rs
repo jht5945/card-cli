@@ -24,7 +24,7 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "u2f-sign" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("FIDO U2F Sign subcommand")
+        SubCommand::with_name(self.name()).about("FIDO U2F sign subcommand")
             .arg(Arg::with_name("app-id").short("a").long("app-id").default_value("https://example.com").help("App id"))
             .arg(Arg::with_name("timeout").short("t").long("timeout").default_value("30").help("Timeout in seconds"))
             .arg(Arg::with_name("public-key-hex").long("public-key-hex").takes_value(true).help("Public key hex"))

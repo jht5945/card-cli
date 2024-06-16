@@ -17,7 +17,7 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "rsa-encrypt" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("RSA Encrypt subcommand")
+        SubCommand::with_name(self.name()).about("RSA encrypt subcommand")
             .arg(Arg::with_name("pub-key-in").long("pub-key-in").takes_value(true).help("Public key in"))
             .arg(Arg::with_name("data").long("data").takes_value(true).help("Data"))
             .arg(Arg::with_name("data-hex").long("data-hex").takes_value(true).help("Data in HEX"))

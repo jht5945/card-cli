@@ -127,7 +127,7 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "pgp-card-make" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("OpenPGP Card Make subcommand")
+        SubCommand::with_name(self.name()).about("OpenPGP Card make subcommand")
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).default_value("12345678").help("OpenPGP card admin pin"))
             .arg(Arg::with_name("pass").long("pass").takes_value(true).required(false).help("Password for PGP secret key"))
             .arg(Arg::with_name("in").long("in").takes_value(true).required(false).help("PGP file in"))

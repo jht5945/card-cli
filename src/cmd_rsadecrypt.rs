@@ -9,6 +9,8 @@ use rust_util::util_clap::{Command, CommandError};
 use rust_util::util_msg;
 use rust_util::util_msg::MessageType;
 
+use crate::util::{read_stdin, try_decode};
+
 pub struct CommandImpl;
 
 // https://docs.rs/openssl/0.10.36/openssl/encrypt/index.html
@@ -16,9 +18,11 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "rsa-decrypt" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("RSA Decrypt subcommand")
+        SubCommand::with_name(self.name()).about("RSA decrypt subcommand")
             .arg(Arg::with_name("pri-key-in").long("pri-key-in").takes_value(true).help("Private key in"))
             .arg(Arg::with_name("encrypted").long("encrypted").takes_value(true).help("Encrypted data"))
+            .arg(Arg::with_name("ciphertext").long("ciphertext").takes_value(true).help("Encrypted data"))
+            .arg(Arg::with_name("stdin").long("stdin").help("Standard input (Ciphertext)"))
             .arg(Arg::with_name("padding").long("padding").takes_value(true)
                 .possible_values(&["pkcs1", "oaep", "pss", "none"]).help("Padding"))
             .arg(Arg::with_name("json").long("json").help("JSON output"))
@@ -40,17 +44,21 @@ impl Command for CommandImpl {
         let keypair = opt_result!(Rsa::private_key_from_pem(&pri_key_bytes), "Parse RSA failed: {}");
         let keypair = opt_result!(PKey::from_rsa(keypair), "RSA to PKey failed: {}");
 
-        let encrypted = if let Some(encrypted) = sub_arg_matches.value_of("encrypted") {
-            opt_result!(hex::decode(encrypted), "Decode encrypted HEX failed: {}")
+        let ciphertext_opt = sub_arg_matches.value_of("encrypted")
+            .or_else(|| sub_arg_matches.value_of("ciphertext"));
+        let ciphertext = if let Some(ciphertext) = ciphertext_opt {
+            opt_result!(try_decode(ciphertext), "Decode ciphertext HEX or Base64 failed: {}")
+        } else if sub_arg_matches.is_present("stdin") {
+            read_stdin()?
         } else {
-            return simple_error!("Data is required, --data-hex or --data argument!");
+            return simple_error!("Data is required, --ciphertext or --encrypted argument!");
         };
 
         util_msg::when(MessageType::DEBUG, || {
             let rsa = keypair.rsa().unwrap();
             let n = rsa.n();
             let d = rsa.d();
-            let m = BigNum::from_slice(&encrypted).unwrap();
+            let m = BigNum::from_slice(&ciphertext).unwrap();
             let mut r = BigNum::new().unwrap();
             r.mod_exp(&m, d, n, &mut BigNumContext::new().unwrap()).unwrap();
             let v = r.to_vec();
@@ -63,12 +71,12 @@ impl Command for CommandImpl {
 
         let mut decrypter = opt_result!(Decrypter::new(&keypair), "Decrypter new failed: {}");
         opt_result!(decrypter.set_rsa_padding(padding), "Set RSA padding failed: {}");
-        let buffer_len = opt_result!(decrypter.decrypt_len(&encrypted), "Decrypt len failed: {}");
+        let buffer_len = opt_result!(decrypter.decrypt_len(&ciphertext), "Decrypt len failed: {}");
         let mut data = vec![0; buffer_len];
-        let decrypted_len = opt_result!(decrypter.decrypt(&encrypted, &mut data), "Decrypt failed: {}");
+        let decrypted_len = opt_result!(decrypter.decrypt(&ciphertext, &mut data), "Decrypt failed: {}");
         data.truncate(decrypted_len);
 
-        let encrypted_hex = hex::encode(&encrypted);
+        let encrypted_hex = hex::encode(&ciphertext);
         information!("Padding: {}", padding_str);
         success!("Message HEX: {}", hex::encode(&data));
         success!("Message: {}", String::from_utf8_lossy(&data));

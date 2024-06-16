@@ -19,8 +19,8 @@ impl Command for CommandImpl {
             .arg(Arg::with_name("challenge-hex").short("x").long("challenge-hex").takes_value(true).help("Challenge HEX"))
             .arg(Arg::with_name("sha1").short("1").long("sha1").help("Output SHA1"))
             .arg(Arg::with_name("sha256").short("2").long("sha256").help("Output SHA256"))
-            .arg(Arg::with_name("sha384").short("3").long("sha384").help("Output SHA256"))
-            .arg(Arg::with_name("sha512").short("5").long("sha512").help("Output SHA256"))
+            .arg(Arg::with_name("sha384").short("3").long("sha384").help("Output SHA384"))
+            .arg(Arg::with_name("sha512").short("5").long("sha512").help("Output SHA512"))
             .arg(Arg::with_name("json").long("json").help("JSON output"))
     }
 

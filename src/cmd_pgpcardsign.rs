@@ -38,7 +38,7 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "pgp-card-sign" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("OpenPGP Card Sign subcommand")
+        SubCommand::with_name(self.name()).about("OpenPGP Card sign subcommand")
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).default_value("123456").help("OpenPGP card user pin"))
             .arg(Arg::with_name("pass").long("pass").takes_value(true).help("[deprecated] now OpenPGP card user pin"))
             .arg(Arg::with_name("sha256").short("2").long("sha256").takes_value(true).help("Digest SHA256 HEX"))

@@ -10,8 +10,9 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "piv-generate" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("PIV Generate subcommand")
+        SubCommand::with_name(self.name()).about("PIV generate subcommand")
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("OpenPGP card user pin"))
+            .arg(Arg::with_name("force").long("force").help("Force generate"))
             .arg(Arg::with_name("json").long("json").help("JSON output"))
     }
 
@@ -21,6 +22,10 @@ impl Command for CommandImpl {
 
         warning!("This feature is not works");
         let pin = opt_value_result!(sub_arg_matches.value_of("pin"), "User pin must be assigned");
+
+        if !sub_arg_matches.is_present("force") {
+            failure_and_exit!("--force must be assigned");
+        }
 
         let mut yk = opt_result!(YubiKey::open(), "YubiKey not found: {}");
         opt_result!(yk.verify_pin(pin.as_bytes()), "YubiKey verify pin failed: {}");

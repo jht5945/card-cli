@@ -15,7 +15,7 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "piv-sign" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("PIV RSA Sign(with SHA256) subcommand")
+        SubCommand::with_name(self.name()).about("PIV RSA sign(with SHA256) subcommand")
             .arg(Arg::with_name("slot").short("s").long("slot").takes_value(true).help("PIV slot, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e"))
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).default_value("123456").help("OpenPGP card user pin"))
             .arg(Arg::with_name("sha256").short("2").long("sha256").takes_value(true).help("Digest SHA256 HEX"))

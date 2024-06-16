@@ -39,7 +39,7 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "sign-file" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("PIV Sign(with SHA256) subcommand")
+        SubCommand::with_name(self.name()).about("PIV sign(with SHA256) subcommand")
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("PIV card user pin"))
             .arg(Arg::with_name("slot").short("s").long("slot")
                 .takes_value(true).required(true).help("PIV slot, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e"))

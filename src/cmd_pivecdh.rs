@@ -2,17 +2,13 @@ use std::collections::BTreeMap;
 use std::fs;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
-use p256::{EncodedPoint as P256EncodedPoint, PublicKey as P256PublicKey};
-use p256::ecdh::EphemeralSecret as P256EphemeralSecret;
-use p384::{EncodedPoint as P384EncodedPoint, PublicKey as P384PublicKey};
-use p384::ecdh::EphemeralSecret as P384EphemeralSecret;
 use rand::rngs::OsRng;
 use rust_util::util_clap::{Command, CommandError};
 use rust_util::util_msg;
 use yubikey::{PinPolicy, YubiKey};
 use yubikey::piv::{AlgorithmId, decrypt_data, metadata};
 
-use crate::pivutil;
+use crate::{ecdhutil, pivutil};
 use crate::pivutil::get_algorithm_id;
 
 pub struct CommandImpl;
@@ -67,61 +63,9 @@ impl Command for CommandImpl {
             }
 
             if public256 {
-                use p256::elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
-                let public_key;
-                if let Some(public_key_pem) = public_key_pem_opt {
-                    public_key = opt_result!(public_key_pem.parse::<P256PublicKey>(), "Parse public key failed: {}");
-                } else {
-                    let public_key_point_hex = sub_arg_matches.value_of("public-key-point-hex").unwrap_or_else(||
-                        failure_and_exit!("--public-key, --public-key-file or --public-key-point-hex must require one"));
-                    let public_key_point_bytes = opt_result!(hex::decode(public_key_point_hex), "Parse public key point hex failed: {}");
-                    let encoded_point = opt_result!(P256EncodedPoint::from_bytes(public_key_point_bytes), "Parse public key point failed: {}");
-                    public_key = P256PublicKey::from_encoded_point(&encoded_point).unwrap();
-                };
-                let esk = P256EphemeralSecret::random(&mut OsRng);
-                let epk = esk.public_key();
-                let epk_bytes = P256EphemeralKeyBytes::from_public_key(&epk);
-
-                let public_key_encoded_point = public_key.to_encoded_point(false);
-
-                let shared_secret = esk.diffie_hellman(&public_key);
-                if json_output {
-                    json.insert("shared_secret_hex", hex::encode(shared_secret.raw_secret_bytes()));
-                    json.insert("epk_point_hex", hex::encode(epk_bytes.decompress().as_bytes()));
-                    json.insert("pk_point_hex", hex::encode(public_key_encoded_point.as_bytes()));
-                } else {
-                    information!("Shared secret: {}", hex::encode(shared_secret.raw_secret_bytes()));
-                    information!("EPK point: {}", hex::encode(epk_bytes.decompress().as_bytes()));
-                    information!("Public key point: {}", hex::encode(public_key_encoded_point.as_bytes()));
-                }
+                ecdhutil::piv_ecdh!(p256, public_key_pem_opt, sub_arg_matches, json, json_output);
             } else {
-                use p384::elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
-                let public_key;
-                if let Some(public_key_pem) = public_key_pem_opt {
-                    public_key = opt_result!(public_key_pem.parse::<P384PublicKey>(), "Parse public key failed: {}");
-                } else {
-                    let public_key_point_hex = sub_arg_matches.value_of("public-key-point-hex").unwrap_or_else(||
-                        failure_and_exit!("--public-key, --public-key-file or --public-key-point-hex must require one"));
-                    let public_key_point_bytes = opt_result!(hex::decode(public_key_point_hex), "Parse public key point hex failed: {}");
-                    let encoded_point = opt_result!(P384EncodedPoint::from_bytes(public_key_point_bytes), "Parse public key point failed: {}");
-                    public_key = P384PublicKey::from_encoded_point(&encoded_point).unwrap();
-                };
-                let esk = P384EphemeralSecret::random(&mut OsRng);
-                let epk = esk.public_key();
-                let epk_bytes = P384EphemeralKeyBytes::from_public_key(&epk);
-
-                let public_key_encoded_point = public_key.to_encoded_point(false);
-
-                let shared_secret = esk.diffie_hellman(&public_key);
-                if json_output {
-                    json.insert("shared_secret_hex", hex::encode(shared_secret.raw_secret_bytes()));
-                    json.insert("epk_point_hex", hex::encode(epk_bytes.decompress().as_bytes()));
-                    json.insert("pk_point_hex", hex::encode(public_key_encoded_point.as_bytes()));
-                } else {
-                    information!("Shared secret: {}", hex::encode(shared_secret.raw_secret_bytes()));
-                    information!("EPK point: {}", hex::encode(epk_bytes.decompress().as_bytes()));
-                    information!("Public key point: {}", hex::encode(public_key_encoded_point.as_bytes()));
-                }
+                ecdhutil::piv_ecdh!(p384, public_key_pem_opt, sub_arg_matches, json, json_output);
             }
         }
 
@@ -166,7 +110,7 @@ impl Command for CommandImpl {
             }
 
             let epk_bytes = opt_result!(hex::decode(epk), "Parse epk failed: {}");
-            let epk_bits = (epk_bytes.len() - 1) * 8;
+            let epk_bits = ((epk_bytes.len() - 1) / 2) * 8;
             debugging!("Epk {} bits", epk_bits);
             let decrypted_shared_secret = opt_result!(decrypt_data(
                 &mut yk,
@@ -186,39 +130,5 @@ impl Command for CommandImpl {
             println!("{}", serde_json::to_string_pretty(&json).unwrap());
         }
         Ok(None)
-    }
-}
-
-#[derive(Debug)]
-pub struct P256EphemeralKeyBytes(P256EncodedPoint);
-
-impl P256EphemeralKeyBytes {
-    fn from_public_key(epk: &P256PublicKey) -> Self {
-        use p256::elliptic_curve::sec1::ToEncodedPoint;
-        P256EphemeralKeyBytes(epk.to_encoded_point(true))
-    }
-
-    fn decompress(&self) -> P256EncodedPoint {
-        // EphemeralKeyBytes is a valid-compressed encoding by construction.
-        use p256::elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
-        let p = P256PublicKey::from_encoded_point(&self.0).unwrap();
-        p.to_encoded_point(false)
-    }
-}
-
-#[derive(Debug)]
-pub struct P384EphemeralKeyBytes(P384EncodedPoint);
-
-impl P384EphemeralKeyBytes {
-    fn from_public_key(epk: &P384PublicKey) -> Self {
-        use p384::elliptic_curve::sec1::ToEncodedPoint;
-        P384EphemeralKeyBytes(epk.to_encoded_point(true))
-    }
-
-    fn decompress(&self) -> P384EncodedPoint {
-        // EphemeralKeyBytes is a valid-compressed encoding by construction.
-        use p384::elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
-        let p = P384PublicKey::from_encoded_point(&self.0).unwrap();
-        p.to_encoded_point(false)
     }
 }

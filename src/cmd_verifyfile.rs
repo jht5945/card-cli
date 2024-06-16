@@ -21,7 +21,7 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "verify-file" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("PIV Verify(with SHA256) subcommand")
+        SubCommand::with_name(self.name()).about("PIV verify(with SHA256) subcommand")
             .arg(Arg::with_name("file").short("f").long("file").takes_value(true).required(false).help("Input file"))
             .arg(Arg::with_name("sign-file").short("S").long("sign-file").takes_value(true).help("Sign file"))
     }

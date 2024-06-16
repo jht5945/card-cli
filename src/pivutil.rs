@@ -163,6 +163,7 @@ pub fn get_slot_id(slot: &str) -> XResult<SlotId> {
     let slot_lower = slot.to_lowercase();
     Ok(match slot_lower.as_str() {
         "9a" | "auth" | "authentication" => SlotId::Authentication,
+        "9b" | "management" => SlotId::Management(ManagementSlotId::Management),
         "9c" | "sign" | "signature" => SlotId::Signature,
         "9d" | "keym" | "keymanagement" => SlotId::KeyManagement,
         "9e" | "card" | "cardauthentication" => SlotId::CardAuthentication,

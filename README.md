@@ -32,11 +32,19 @@ hW53WfImja+b5kwwyqUikyMCAwEAAQ==
 encrypt
 ```
 $ openssl rsautl -encrypt -pubin -inkey enc_key.pem -in test.txt -out enc.txt -pkcs
+
+OR
+
+$ openssl pkeyutl -encrypt -inkey enc_key.pem -pubin -in a.txt -out enc.txt
 ```
 
 decrypt
 ```
 $ card-cli pgp-card-decrypt -c $(cat enc.txt | xxd -ps -c 11111)
+
+OR
+
+$ card-cli piv-decrypt -s r3 -c "$(cat enc.txt | base64)"
 ```
 
 ## sign & verify
@@ -112,7 +120,7 @@ vjG+EPEF3g8ywKaS8mZQX+sCAwEAAQ==
 # piv-ecdh
 
 ```shell
-$ card-cli piv-ecdh --public --public-key-point-hex 04dd3eebd906c9cf00b08ec29f7ed61804d1cc1d1352d9257b628191e08fc3717c4fae3298cd5c4829cec8bf3a946e7db60b7857e1287f6a0bae6b3f2342f007d0 --json
+$ card-cli piv-ecdh --public-256 --public-key-point-hex 04dd3eebd906c9cf00b08ec29f7ed61804d1cc1d1352d9257b628191e08fc3717c4fae3298cd5c4829cec8bf3a946e7db60b7857e1287f6a0bae6b3f2342f007d0 --json
 {
   "epk_point_hex": "04bbb6a458e81d2c646587118abfb029ff715db366f92a1d0468887f9947f176c11961eccebd5b9cbbb8b67e33fa8d3f0010a4aaf5010d0f419f1f99b4c2d7aa56",
   "pk_point_hex": "04dd3eebd906c9cf00b08ec29f7ed61804d1cc1d1352d9257b628191e08fc3717c4fae3298cd5c4829cec8bf3a946e7db60b7857e1287f6a0bae6b3f2342f007d0",

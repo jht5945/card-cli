@@ -14,7 +14,7 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "pgp-age-address" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("OpenPGP Card Encryption key to age address")
+        SubCommand::with_name(self.name()).about("OpenPGP Card encryption key to age address")
     }
 
     fn run(&self, _arg_matches: &ArgMatches, _sub_arg_matches: &ArgMatches) -> CommandError {

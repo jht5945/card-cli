@@ -24,7 +24,7 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "u2f-register" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("FIDO U2F Register subcommand")
+        SubCommand::with_name(self.name()).about("FIDO U2F register subcommand")
             .arg(Arg::with_name("app-id").short("a").long("app-id").default_value("https://example.com").help("App id"))
             .arg(Arg::with_name("timeout").short("t").long("timeout").default_value("30").help("Timeout in seconds"))
             .arg(Arg::with_name("challenge").long("challenge").takes_value(true).help("Challenge HEX"))

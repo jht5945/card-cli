@@ -21,7 +21,7 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "rsa-verify" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("RSA Verify subcommand")
+        SubCommand::with_name(self.name()).about("RSA verify subcommand")
             .arg(Arg::with_name("pub-key-in").long("pub-key-in").takes_value(true).help("Public key in"))
             .arg(Arg::with_name("signature").long("signature").takes_value(true).help("Signature HEX"))
             .arg(Arg::with_name("in").short("i").long("in").takes_value(true).help("File in"))

@@ -14,7 +14,7 @@ impl Command for CommandImpl {
     fn name(&self) -> &str { "pgp-card-list" }
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
-        SubCommand::with_name(self.name()).about("OpenPGP Card List subcommand")
+        SubCommand::with_name(self.name()).about("OpenPGP Card list subcommand")
             .arg(Arg::with_name("detail").long("detail").help("Detail output"))
             .arg(Arg::with_name("json").long("json").help("JSON output"))
     }

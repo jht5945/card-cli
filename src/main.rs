@@ -45,6 +45,7 @@ mod cmd_signjwt;
 mod cmd_signfile;
 mod cmd_verifyfile;
 mod signfile;
+mod ecdhutil;
 
 pub struct DefaultCommandImpl;
 
