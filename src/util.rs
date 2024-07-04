@@ -1,3 +1,4 @@
+use std::fs;
 use std::io::Read;
 
 use base64::{DecodeError, Engine};
@@ -31,4 +32,12 @@ pub fn read_stdin() -> XResult<Vec<u8>> {
     let mut stdin = std::io::stdin();
     opt_result!(stdin.read_to_end(&mut buffer), "Read stdin failed: {}");
     Ok(buffer)
+}
+
+pub fn read_file_or_stdin(file: &str) -> XResult<Vec<u8>> {
+    if file == "-" {
+        read_stdin()
+    } else {
+        Ok(opt_result!(fs::read(file), "Read file: {} failed: {}", file))
+    }
 }

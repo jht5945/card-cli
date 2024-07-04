@@ -4,6 +4,8 @@ use rust_util::util_msg;
 use yubikey::{PinPolicy, piv, TouchPolicy, YubiKey};
 use yubikey::piv::{AlgorithmId, SlotId};
 
+use crate::pinutil;
+
 pub struct CommandImpl;
 
 impl Command for CommandImpl {
@@ -11,7 +13,7 @@ impl Command for CommandImpl {
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("PIV generate subcommand")
-            .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("OpenPGP card user pin"))
+            .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("PIV card user PIN"))
             .arg(Arg::with_name("force").long("force").help("Force generate"))
             .arg(Arg::with_name("json").long("json").help("JSON output"))
     }
@@ -21,7 +23,10 @@ impl Command for CommandImpl {
         if json_output { util_msg::set_logger_std_out(false); }
 
         warning!("This feature is not works");
-        let pin = opt_value_result!(sub_arg_matches.value_of("pin"), "User pin must be assigned");
+        let pin_opt = sub_arg_matches.value_of("pin");
+        let pin_opt = pinutil::get_pin(pin_opt);
+        let pin_opt = pin_opt.as_deref();
+        let pin = opt_value_result!(pin_opt, "User pin must be assigned");
 
         if !sub_arg_matches.is_present("force") {
             failure_and_exit!("--force must be assigned");

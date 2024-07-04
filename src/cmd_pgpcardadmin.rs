@@ -2,7 +2,7 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use openpgp_card::card_do::{Lang, Sex};
 use rust_util::util_clap::{Command, CommandError};
 
-use crate::pgpcardutil;
+use crate::{pgpcardutil, pinutil};
 
 pub struct CommandImpl;
 
@@ -11,7 +11,7 @@ impl Command for CommandImpl {
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("OpenPGP Card admin subcommand")
-            .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).default_value("12345678").help("OpenPGP card admin pin"))
+            .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("OpenPGP card admin pin"))
             .arg(Arg::with_name("pass").long("pass").takes_value(true).help("[deprecated] now OpenPGP card admin pin"))
             .arg(Arg::with_name("name").short("n").long("name").takes_value(true).required(false).help("Set name"))
             .arg(Arg::with_name("url").long("url").takes_value(true).required(false).help("Set URL"))
@@ -22,6 +22,8 @@ impl Command for CommandImpl {
 
     fn run(&self, _arg_matches: &ArgMatches, sub_arg_matches: &ArgMatches) -> CommandError {
         let pin_opt = sub_arg_matches.value_of("pass").or_else(|| sub_arg_matches.value_of("pin"));
+        let pin_opt = pinutil::get_pin(pin_opt);
+        let pin_opt = pin_opt.as_deref();
         let pin = opt_value_result!(pin_opt, "Pin must be assigned");
         if pin.len() < 8 { return simple_error!("Admin pin length:{}, must >= 8!", pin.len()); }
 

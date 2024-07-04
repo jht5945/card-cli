@@ -5,7 +5,7 @@ use openpgp_card::crypto_data::Cryptogram;
 use rust_util::{util_msg, XResult};
 use rust_util::util_clap::{Command, CommandError};
 
-use crate::pgpcardutil;
+use crate::{pgpcardutil, pinutil};
 use crate::util::{base64_encode, read_stdin, try_decode};
 
 #[derive(Debug, Clone, Copy)]
@@ -31,7 +31,7 @@ impl Command for CommandImpl {
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("OpenPGP Card decrypt subcommand")
-            .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).default_value("123456").help("OpenPGP card user pin"))
+            .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("OpenPGP card user pin"))
             .arg(Arg::with_name("pass").long("pass").takes_value(true).help("[deprecated] now OpenPGP card user pin"))
             .arg(Arg::with_name("ciphertext").short("c").long("ciphertext").takes_value(true).help("Cipher text (HEX or Base64)"))
             .arg(Arg::with_name("stdin").long("stdin").help("Standard input (Ciphertext)"))
@@ -44,6 +44,8 @@ impl Command for CommandImpl {
         if json_output { util_msg::set_logger_std_out(false); }
 
         let pin_opt = sub_arg_matches.value_of("pass").or_else(|| sub_arg_matches.value_of("pin"));
+        let pin_opt = pinutil::get_pin(pin_opt);
+        let pin_opt = pin_opt.as_deref();
         let pin = opt_value_result!(pin_opt, "User pin must be assigned");
         if pin.len() < 6 { return simple_error!("User pin length:{}, must >= 6!", pin.len()); }
 

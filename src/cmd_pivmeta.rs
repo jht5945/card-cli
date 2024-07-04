@@ -12,6 +12,8 @@ use yubikey::piv::{AlgorithmId, metadata};
 use crate::pivutil;
 use crate::pivutil::{get_algorithm_id_by_certificate, slot_equals, ToStr};
 use crate::pkiutil::bytes_to_pem;
+use crate::sshutil::SshVecWriter;
+use crate::util::base64_encode;
 
 pub struct CommandImpl;
 
@@ -80,6 +82,7 @@ impl Command for CommandImpl {
                         let public_key_bit_string = &cert.subject_public_key_info.subject_public_key;
                         match algorithm_id {
                             AlgorithmId::EccP256 | AlgorithmId::EccP384 => {
+                                let ec_bit_len = iff!(matches!(algorithm_id, AlgorithmId::EccP256), 256, 384);
                                 let pk_point_hex = public_key_bit_string.raw_bytes();
                                 json.insert("pk_point_hex", hex::encode(pk_point_hex));
                                 if pk_point_hex[0] == 0x04 {
@@ -88,6 +91,14 @@ impl Command for CommandImpl {
                                         format!("02{}", hex::encode(&pk_point_hex[1..(pk_point_hex.len() / 2) + 1])),
                                     );
                                 }
+
+                                let mut ssh_public_key = vec![];
+                                ssh_public_key.write_string(format!("ecdsa-sha2-nistp{}", ec_bit_len).as_bytes());
+                                ssh_public_key.write_string(format!("nistp{}", ec_bit_len).as_bytes());
+                                ssh_public_key.write_string(pk_point_hex);
+                                let ssh_public_key_str = format!(
+                                    "ecdsa-sha2-nistp{} {} PIV:{}", ec_bit_len, base64_encode(ssh_public_key), slot_id);
+                                json.insert("ssh_public_key", ssh_public_key_str.to_string());
                             }
                             _ => {}
                         }
@@ -100,6 +111,7 @@ impl Command for CommandImpl {
 
                     let x509_certificate = parse_x509_certificate(cert_der.as_slice()).unwrap().1;
                     let public_key_bytes = x509_certificate.public_key().raw;
+
                     json.insert("subject", x509_certificate.subject.to_string());
                     json.insert("issuer", x509_certificate.issuer.to_string());
                     json.insert("public_key_hex", hex::encode(public_key_bytes));

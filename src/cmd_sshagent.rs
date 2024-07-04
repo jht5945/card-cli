@@ -15,6 +15,7 @@ use ssh_agent::proto::message::{self, Message};
 use ssh_agent::proto::public_key::PublicKey;
 
 use crate::digest::{copy_sha256, copy_sha512};
+use crate::pinutil;
 use crate::sshutil::{generate_ssh_string, with_sign};
 
 struct SshAgent {
@@ -161,7 +162,9 @@ impl Command for CommandImpl {
         if use_pgp && !(use_pgp_sign ^ use_pgp_auth) {
             return simple_error!("Args --pgp-sign or --pgp-auth must have one selection when use --pgp");
         }
-        let pin = sub_arg_matches.value_of("pin").unwrap();
+        let pin_opt = sub_arg_matches.value_of("pin");
+        let pin_opt = pinutil::get_pin(pin_opt);
+        let pin = pin_opt.as_deref().unwrap();
 
         let sock_file = sub_arg_matches.value_of("sock-file").unwrap();
         information!("Sock file: {}", sock_file);

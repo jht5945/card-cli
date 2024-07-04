@@ -21,6 +21,7 @@ use rust_util::util_clap::{Command, CommandError};
 use rust_util::XResult;
 use sequoia_openpgp as openpgp;
 
+use crate::pinutil;
 use crate::rsautil::RsaCrt;
 
 #[derive(Debug)]
@@ -128,7 +129,7 @@ impl Command for CommandImpl {
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("OpenPGP Card make subcommand")
-            .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).default_value("12345678").help("OpenPGP card admin pin"))
+            .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("OpenPGP card admin pin"))
             .arg(Arg::with_name("pass").long("pass").takes_value(true).required(false).help("Password for PGP secret key"))
             .arg(Arg::with_name("in").long("in").takes_value(true).required(false).help("PGP file in"))
             .arg(Arg::with_name("force-make").long("force-make").help("Force make OpenPGP card"))
@@ -138,6 +139,8 @@ impl Command for CommandImpl {
 
     fn run(&self, _arg_matches: &ArgMatches, sub_arg_matches: &ArgMatches) -> CommandError {
         let pin_opt = sub_arg_matches.value_of("pin");
+        let pin_opt = pinutil::get_pin(pin_opt);
+        let pin_opt = pin_opt.as_deref();
         let pin = opt_value_result!(pin_opt, "Pin must be assigned");
         if pin.len() < 8 { return simple_error!("Admin pin length:{}, must >= 8!", pin.len()); }
 

@@ -10,7 +10,7 @@ use x509_parser::nom::AsBytes;
 use yubikey::{Key, YubiKey};
 use yubikey::piv::{sign_data, SlotId};
 
-use crate::{argsutil, pivutil};
+use crate::{argsutil, pinutil, pivutil};
 use crate::digest::sha256_bytes;
 use crate::signfile::{CERTIFICATES_SEARCH_URL, HASH_ALGORITHM_SHA256, SIGNATURE_ALGORITHM_SHA256_WITH_ECDSA, SignFileRequest, SIMPLE_SIG_SCHEMA, SimpleSignFile, SimpleSignFileSignature};
 use crate::util::base64_encode;
@@ -40,7 +40,7 @@ impl Command for CommandImpl {
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("PIV sign(with SHA256) subcommand")
-            .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("PIV card user pin"))
+            .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("PIV card user PIN"))
             .arg(Arg::with_name("slot").short("s").long("slot")
                 .takes_value(true).required(true).help("PIV slot, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e"))
             .arg(Arg::with_name("file").short("f").long("file").takes_value(true).required(true).help("Input file"))
@@ -58,6 +58,8 @@ impl Command for CommandImpl {
         let attributes_opt = sub_arg_matches.value_of("attributes").map(ToString::to_string);
 
         let pin_opt = sub_arg_matches.value_of("pin");
+        let pin_opt = pinutil::get_pin(pin_opt);
+        let pin_opt = pin_opt.as_deref();
 
         let slot = opt_value_result!(sub_arg_matches.value_of("slot"), "--slot must assigned, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e");
         // TODO read from stream not in memory
