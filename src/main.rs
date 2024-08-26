@@ -42,6 +42,7 @@ mod cmd_challconfig;
 mod cmd_sshagent;
 mod cmd_sshparsesign;
 mod cmd_sshpivsign;
+mod cmd_sshpubkey;
 mod cmd_pgpageaddress;
 mod cmd_signjwt;
 mod cmd_signfile;
@@ -103,6 +104,7 @@ fn inner_main() -> CommandError {
         Box::new(cmd_sshagent::CommandImpl),
         Box::new(cmd_sshparsesign::CommandImpl),
         Box::new(cmd_sshpivsign::CommandImpl),
+        Box::new(cmd_sshpubkey::CommandImpl),
         Box::new(cmd_pgpageaddress::CommandImpl),
         Box::new(cmd_signjwt::CommandImpl),
         Box::new(cmd_signfile::CommandImpl),
