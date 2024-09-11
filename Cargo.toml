@@ -1,8 +1,12 @@
 [package]
 name = "card-cli"
-version = "1.9.12"
+version = "1.10.6"
 authors = ["Hatter Jiang <jht5945@gmail.com>"]
 edition = "2018"
+
+[features]
+default = ["with-sequoia-openpgp"]
+with-sequoia-openpgp = ["sequoia-openpgp", "openpgp-card-sequoia"]
 
 [dependencies]
 authenticator = "0.3"
@@ -19,8 +23,8 @@ hex = "0.4"
 u2f = "0.2"
 openpgp-card = "0.3"
 openpgp-card-pcsc = "0.3"
-openpgp-card-sequoia = "0.1"
-sequoia-openpgp = "1.0"
+openpgp-card-sequoia = { version = "0.1", optional = true }
+sequoia-openpgp = { version = "1.0", optional = true }
 chrono = "0.4"
 simpledateformat = "0.1"
 ring = "0.17"
@@ -38,12 +42,13 @@ tabled = "0.14"
 env_logger = "0.10"
 bech32 = "0.9"
 ecdsa = { version = "0.16", features = ["verifying", "spki", "pem", "der"] }
-jwt = "0.16.0"
+jwt = "0.16"
 reqwest = { version = "0.11", features = ["blocking"] }
-pinentry = "0.5.0"
-rpassword = "7.3.1"
-secrecy = "0.8.0"
-der-parser = "9.0.0"
+pinentry = "0.5"
+rpassword = "7.3"
+secrecy = "0.8"
+der-parser = "9.0"
+sshcerts = "0.13"
 #lazy_static = "1.4.0"
 #ssh-key = "0.4.0"
 #ctap-hid-fido2 = "2.1.3"

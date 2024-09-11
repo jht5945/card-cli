@@ -29,6 +29,15 @@ impl Command for CommandImpl {
             if let Ok(pin_retries) = yk.get_pin_retries() {
                 json.insert("pin_retries", pin_retries.to_string());
             }
+            if let Ok(chuid) = yk.chuid() {
+                json.insert("chuid", chuid.to_string());
+            }
+            if let Ok(ccuid) = yk.cccid() {
+                json.insert("ccuid", ccuid.to_string());
+            }
+            if let Ok(piv_keys) = yk.piv_keys() {
+                json.insert("keys", piv_keys.iter().map(|k| format!("{}", k.slot())).collect::<Vec<_>>().join(", "));
+            }
 
             println!("{}", serde_json::to_string_pretty(&json).expect("Convert to JSON failed!"));
         } else {

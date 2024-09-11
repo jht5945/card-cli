@@ -3,6 +3,7 @@ use openssl::bn::BigNum;
 use openssl::rsa::Rsa;
 use pem::Pem;
 use rust_util::XResult;
+#[cfg(feature = "with-sequoia-openpgp")]
 use sequoia_openpgp::crypto::mpi::PublicKey;
 use x509_parser::x509::AlgorithmIdentifier;
 
@@ -42,6 +43,7 @@ pub fn bytes_to_pem<T>(tag: &str, contents: T) -> String where T: Into<Vec<u8>> 
     pem::encode(&cert_public_key_pem_obj).trim().to_string()
 }
 
+#[cfg(feature = "with-sequoia-openpgp")]
 pub fn sequoia_openpgp_public_key_pem(public_key: &PublicKey) -> Option<(Vec<u8>, String)> {
     match public_key {
         PublicKey::RSA { e, n } => {

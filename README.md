@@ -3,8 +3,13 @@
 > FIDO(U2F, WebAuthn), YubiKey, OpenPGP command line tool
 
 Install:
-```
+```shell
 cargo install --git https://git.hatter.ink/hatter/card-cli.git
+```
+
+Compile without features:
+```shell
+cargo build --release --no-default-features
 ```
 
 # PGP
@@ -30,7 +35,7 @@ hW53WfImja+b5kwwyqUikyMCAwEAAQ==
 ```
 
 encrypt
-```
+```shell
 $ openssl rsautl -encrypt -pubin -inkey enc_key.pem -in test.txt -out enc.txt -pkcs
 
 OR
@@ -39,7 +44,7 @@ $ openssl pkeyutl -encrypt -inkey enc_key.pem -pubin -in a.txt -out enc.txt
 ```
 
 decrypt
-```
+```shell
 $ card-cli pgp-card-decrypt -c $(cat enc.txt | xxd -ps -c 11111)
 
 OR
@@ -50,7 +55,7 @@ $ card-cli piv-decrypt -s r3 -c "$(cat enc.txt | base64)"
 ## sign & verify
 
 sign
-```
+```shell
 $ card-cli pgp-card-sign -2 $(shasum -a 256 test.txt | awk '{print $1}')
 
 OR
@@ -59,7 +64,7 @@ $ card-cli pgp-card-sign --in test.txt --use-sha256
 ```
 
 verify
-```
+```shell
 $ openssl dgst -sha256 -verify sign_key.pem -signature sig test.txt 
 Verified OK
 ```
@@ -171,6 +176,52 @@ $ card-cli pgp-age-address
 [INFO ] Found 1 card(s)
 [OK   ] Found card #0: Ok(ApplicationIdentifier { application: 1, version: 772, manufacturer: 6, serial: 370378374 })
 [OK   ] Age address: age10l464vxcpnkjguctvylnmp5jg4swhncn4quda0qxta3ud8pycc0qeaj2te
+```
+
+# sign-jwt
+
+Sign a JWT:
+```shell
+card-cli sign-jwt -s r3 \
+    -C iss:****** \
+    -C sub:****** \
+    -C aud:client_gard****** \
+    -K KEY=ID \
+    --jti \
+    --validity 10m --json
+```
+
+# SSH CA
+
+## Generate SSH root CA
+
+```shell
+card-cli ssh-pub-key --ca -s r15
+```
+
+Outputs:
+```
+cert-authority,principals="root" ecdsa-sha2-nistp384 AAAAE2VjZHNh****** Yubikey-PIV-R15
+```
+
+> `principals` can be multiple items, split by `,`, e.g. `root,hatterink`
+
+## Generate SSH user CA
+
+```shell
+ssh-keygen -f id_user
+
+card-cli ssh-piv-cert --pub id_user.pub -s r15
+```
+
+Show SSH CA cert details:
+```shell
+ssh-keygen -L -f id_user-cert.pub
+```
+
+SSH to server:
+```shell
+ssh -i id_user root@example.com
 ```
 
 

@@ -1,6 +1,10 @@
 _:
   @just --list
 
+# install card-cli
+install:
+  cargo install --path .
+
 # run --help
 help:
   cargo r -- --help

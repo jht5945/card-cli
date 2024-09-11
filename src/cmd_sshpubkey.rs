@@ -1,13 +1,13 @@
+use crate::digest::sha256_bytes;
+use crate::pivutil;
+use crate::pivutil::{get_algorithm_id_by_certificate, slot_equals, ToStr};
+use crate::sshutil::SshVecWriter;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use rust_util::util_clap::{Command, CommandError};
 use yubikey::piv::AlgorithmId;
 use yubikey::{Key, YubiKey};
-
-use crate::pivutil;
-use crate::pivutil::{get_algorithm_id_by_certificate, slot_equals, ToStr};
-use crate::sshutil::SshVecWriter;
 
 pub struct CommandImpl;
 
@@ -17,10 +17,12 @@ impl Command for CommandImpl {
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("SSH public key subcommand")
             .arg(Arg::with_name("slot").short("s").long("slot").takes_value(true).help("PIV slot, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e"))
+            .arg(Arg::with_name("ca").long("ca").help("SSH cert-authority"))
     }
 
     fn run(&self, _arg_matches: &ArgMatches, sub_arg_matches: &ArgMatches) -> CommandError {
         let slot = opt_value_result!(sub_arg_matches.value_of("slot"), "--slot must assigned, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e");
+        let ca = sub_arg_matches.is_present("ca");
         let mut yk = opt_result!(YubiKey::open(), "YubiKey not found: {}");
         let slot_id = pivutil::get_slot_id(slot)?;
 
@@ -59,7 +61,6 @@ impl Command for CommandImpl {
 
         information!("SSH algorithm: {}", ssh_algorithm);
         information!("ECDSA public key: {}", hex::encode(&ec_key_point));
-        println!();
 
         // ECDSA SSH public key format:
         // string ecdsa-sha2-[identifier]
@@ -71,13 +72,24 @@ impl Command for CommandImpl {
         //
         // [identifier] will be nistp256 or nistp384
         let mut ssh_pub_key = vec![];
-        ssh_pub_key.write_string(&format!("ecdsa-sha2-{}", ssh_algorithm).as_bytes());
+        ssh_pub_key.write_string(format!("ecdsa-sha2-{}", ssh_algorithm).as_bytes());
         let mut ecc_key_blob = vec![];
         ecc_key_blob.write_string(ssh_algorithm.as_bytes());
         ecc_key_blob.write_string(&ec_key_point);
         ssh_pub_key.write_bytes(&ecc_key_blob);
 
-        println!("ecdsa-sha2-{} {} Yubikey-PIV-{}", ssh_algorithm, STANDARD.encode(&ssh_pub_key), slot_id);
+        let ssh_pub_key_sha256 = sha256_bytes(&ssh_pub_key);
+        information!("SSH key SHA256: {} (base64)", STANDARD.encode(&ssh_pub_key_sha256));
+        information!("SSH key SHA256: {} (hex)", hex::encode(&ssh_pub_key_sha256));
+        println!();
+
+        println!(
+            "{}ecdsa-sha2-{} {} Yubikey-PIV-{}",
+            if ca { "cert-authority,principals=\"root\" " } else { "" },
+            ssh_algorithm,
+            STANDARD.encode(&ssh_pub_key),
+            slot_id
+        );
 
         Ok(None)
     }

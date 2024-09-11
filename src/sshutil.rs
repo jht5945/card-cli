@@ -21,21 +21,21 @@ pub fn append_slice_with_len(v: &mut Vec<u8>, s: &[u8]) {
 }
 
 pub trait SshVecWriter {
-    fn write_bytes(&mut self, bytes: &[u8]) -> ();
-    fn write_u32(&mut self, num: u32) -> ();
-    fn write_string(&mut self, bytes: &[u8]) -> ();
+    fn write_bytes(&mut self, bytes: &[u8]);
+    fn write_u32(&mut self, num: u32);
+    fn write_string(&mut self, bytes: &[u8]);
 }
 
 impl SshVecWriter for Vec<u8> {
-    fn write_bytes(&mut self, bytes: &[u8]) -> () {
+    fn write_bytes(&mut self, bytes: &[u8]) {
         self.extend_from_slice(bytes);
     }
 
-    fn write_u32(&mut self, num: u32) -> () {
+    fn write_u32(&mut self, num: u32) {
         self.write_bytes(&num.to_be_bytes());
     }
 
-    fn write_string(&mut self, bytes: &[u8]) -> () {
+    fn write_string(&mut self, bytes: &[u8]) {
         self.write_u32(bytes.len() as u32);
         self.write_bytes(bytes);
     }

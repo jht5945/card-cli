@@ -21,11 +21,13 @@ mod cmd_u2fsign;
 mod cmd_rsaencrypt;
 mod cmd_rsadecrypt;
 mod cmd_rsaverify;
+#[cfg(feature = "with-sequoia-openpgp")]
 mod cmd_pgp;
 mod cmd_pgpcardadmin;
 mod cmd_pgpcardlist;
 mod cmd_pgpcardsign;
 mod cmd_pgpcarddecrypt;
+#[cfg(feature = "with-sequoia-openpgp")]
 mod cmd_pgpcardmake;
 mod cmd_piv;
 mod cmd_pivsummary;
@@ -42,7 +44,9 @@ mod cmd_challconfig;
 mod cmd_sshagent;
 mod cmd_sshparsesign;
 mod cmd_sshpivsign;
+mod cmd_sshpivcert;
 mod cmd_sshpubkey;
+mod cmd_sshparse;
 mod cmd_pgpageaddress;
 mod cmd_signjwt;
 mod cmd_signfile;
@@ -84,11 +88,13 @@ fn inner_main() -> CommandError {
         Box::new(cmd_rsaencrypt::CommandImpl),
         Box::new(cmd_rsadecrypt::CommandImpl),
         Box::new(cmd_rsaverify::CommandImpl),
+        #[cfg(feature = "with-sequoia-openpgp")]
         Box::new(cmd_pgp::CommandImpl),
         Box::new(cmd_pgpcardadmin::CommandImpl),
         Box::new(cmd_pgpcardlist::CommandImpl),
         Box::new(cmd_pgpcardsign::CommandImpl),
         Box::new(cmd_pgpcarddecrypt::CommandImpl),
+        #[cfg(feature = "with-sequoia-openpgp")]
         Box::new(cmd_pgpcardmake::CommandImpl),
         Box::new(cmd_piv::CommandImpl),
         Box::new(cmd_pivsummary::CommandImpl),
@@ -104,16 +110,28 @@ fn inner_main() -> CommandError {
         Box::new(cmd_sshagent::CommandImpl),
         Box::new(cmd_sshparsesign::CommandImpl),
         Box::new(cmd_sshpivsign::CommandImpl),
+        Box::new(cmd_sshpivcert::CommandImpl),
         Box::new(cmd_sshpubkey::CommandImpl),
+        Box::new(cmd_sshparse::CommandImpl),
         Box::new(cmd_pgpageaddress::CommandImpl),
         Box::new(cmd_signjwt::CommandImpl),
         Box::new(cmd_signfile::CommandImpl),
         Box::new(cmd_verifyfile::CommandImpl),
     ];
+
+    let mut features: Vec<&str> = vec![];
+    #[cfg(feature = "with-sequoia-openpgp")]
+    features.push("with-sequoia-openpgp");
+    let about = format!(
+        "{}, features: [{}]",
+        "Card Cli is a command tool for WebAuthn, OpenPGP, YubiKey ... smart cards",
+        features.join(", "),
+    );
+
     let mut app = App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
-        .long_about("Card Cli is a command tool for WebAuthn, OpenPGP, YubiKey ... smart cards")
+        .long_about(about.as_str())
         .setting(AppSettings::ColoredHelp);
     app = DefaultCommandImpl::process_command(app);
     for command in &commands {
