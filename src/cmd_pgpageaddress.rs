@@ -1,10 +1,12 @@
 use bech32::{ToBase32, Variant};
-use clap::{App, ArgMatches, SubCommand};
-use openpgp_card::{KeyType, OpenPgp};
+use clap::{App, Arg, ArgMatches, SubCommand};
 use openpgp_card::algorithm::{Algo, Curve};
 use openpgp_card::crypto_data::{EccType, PublicKeyMaterial};
+use openpgp_card::{KeyType, OpenPgp};
 use openpgp_card_pcsc::PcscBackend;
 use rust_util::util_clap::{Command, CommandError};
+use rust_util::util_msg;
+use std::collections::BTreeMap;
 
 const AGE_PUBLIC_KEY_PREFIX: &str = "age";
 
@@ -15,17 +17,27 @@ impl Command for CommandImpl {
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("OpenPGP Card encryption key to age address")
+            .arg(Arg::with_name("json").long("json").help("JSON output"))
     }
 
-    fn run(&self, _arg_matches: &ArgMatches, _sub_arg_matches: &ArgMatches) -> CommandError {
+    fn run(&self, _arg_matches: &ArgMatches, sub_arg_matches: &ArgMatches) -> CommandError {
+        let json_output = sub_arg_matches.is_present("json");
+        if json_output { util_msg::set_logger_std_out(false); }
+
         let cards = opt_result!(PcscBackend::cards(None), "Failed to list OpenPGP cards: {}");
 
+        let mut cards_output: Vec<BTreeMap<&str, String>> = vec![];
         information!("Found {} card(s)", cards.len());
         for (i, card) in cards.into_iter().enumerate() {
+            let mut card_output = BTreeMap::new();
+
             let mut pgp = OpenPgp::new(card);
             let mut trans = opt_result!(pgp.transaction(), "Open card failed: {}");
             if let Ok(application_related_data) = trans.application_related_data() {
                 success!("Found card #{}: {:?}", i, application_related_data.application_id());
+                if let Ok(application_id) = application_related_data.application_id() {
+                    card_output.insert("application_id", format!("{}", application_id));
+                }
             }
             let encryption_public_key = match trans.public_key(KeyType::Decryption) {
                 Ok(pub_key) => pub_key,
@@ -44,11 +56,18 @@ impl Command for CommandImpl {
                             Variant::Bech32,
                         ), "Generate age address failed: {}");
                         success!("Age address: {}", age_address);
+                        card_output.insert("age_address", age_address);
                     }
                 }
             } else {
                 failure!("Not supported encryption key: {}", encryption_public_key);
             }
+
+            cards_output.push(card_output);
+        }
+
+        if json_output {
+            println!("{}", serde_json::to_string_pretty(&cards_output).unwrap());
         }
         Ok(None)
     }
