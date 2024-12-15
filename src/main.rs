@@ -4,56 +4,68 @@ extern crate rust_util;
 use clap::{App, AppSettings, ArgMatches};
 use rust_util::util_clap::{Command, CommandError};
 
-mod util;
-mod sshutil;
-mod fido;
-mod digest;
-mod pivutil;
-mod rsautil;
-mod pkiutil;
-mod hmacutil;
-mod ecdsautil;
 mod argsutil;
-mod pgpcardutil;
-mod cmd_list;
-mod cmd_u2fregister;
-mod cmd_u2fsign;
-mod cmd_rsaencrypt;
-mod cmd_rsadecrypt;
-mod cmd_rsaverify;
-#[cfg(feature = "with-sequoia-openpgp")]
-mod cmd_pgp;
-mod cmd_pgpcardadmin;
-mod cmd_pgpcardlist;
-mod cmd_pgpcardsign;
-mod cmd_pgpcarddecrypt;
-#[cfg(feature = "with-sequoia-openpgp")]
-mod cmd_pgpcardmake;
-mod cmd_piv;
-mod cmd_pivsummary;
-mod cmd_pivmeta;
-mod cmd_pivverify;
-mod cmd_pivrsasign;
-mod cmd_pivecdh;
-mod cmd_pivecsign;
-mod cmd_pivdecrypt;
-mod cmd_pivgenerate;
-mod cmd_hmac_sha1;
 mod cmd_chall;
 mod cmd_challconfig;
-mod cmd_sshagent;
-mod cmd_sshparsesign;
-mod cmd_sshpivsign;
-mod cmd_sshpivcert;
-mod cmd_sshpubkey;
-mod cmd_sshparse;
+mod cmd_ecverify;
+mod cmd_hmac_sha1;
+mod cmd_list;
+#[cfg(feature = "with-sequoia-openpgp")]
+mod cmd_pgp;
 mod cmd_pgpageaddress;
-mod cmd_signjwt;
+mod cmd_pgpcardadmin;
+mod cmd_pgpcarddecrypt;
+mod cmd_pgpcardlist;
+#[cfg(feature = "with-sequoia-openpgp")]
+mod cmd_pgpcardmake;
+mod cmd_pgpcardsign;
+mod cmd_piv;
+mod cmd_pivdecrypt;
+mod cmd_pivecdh;
+mod cmd_pivecsign;
+mod cmd_pivgenerate;
+mod cmd_pivmeta;
+mod cmd_pivrsasign;
+mod cmd_pivsummary;
+mod cmd_pivverify;
+mod cmd_rsadecrypt;
+mod cmd_rsaencrypt;
+mod cmd_rsaverify;
+#[cfg(feature = "with-secure-enclave")]
+mod cmd_se;
+#[cfg(feature = "with-secure-enclave")]
+mod cmd_se_ecdh;
+#[cfg(feature = "with-secure-enclave")]
+mod cmd_se_ecsign;
+#[cfg(feature = "with-secure-enclave")]
+mod cmd_se_generate;
 mod cmd_signfile;
+mod cmd_signjwt;
+mod cmd_sshagent;
+mod cmd_sshparse;
+mod cmd_sshparsesign;
+mod cmd_sshpivcert;
+mod cmd_sshpivsign;
+mod cmd_sshpubkey;
+mod cmd_u2fregister;
+mod cmd_u2fsign;
 mod cmd_verifyfile;
-mod signfile;
+mod digest;
 mod ecdhutil;
+mod ecdsautil;
+mod fido;
+mod hmacutil;
+mod keyutil;
+mod pgpcardutil;
 mod pinutil;
+mod pivutil;
+mod pkiutil;
+mod rsautil;
+#[cfg(feature = "with-secure-enclave")]
+mod seutil;
+mod signfile;
+mod sshutil;
+mod util;
 
 pub struct DefaultCommandImpl;
 
@@ -117,11 +129,26 @@ fn inner_main() -> CommandError {
         Box::new(cmd_signjwt::CommandImpl),
         Box::new(cmd_signfile::CommandImpl),
         Box::new(cmd_verifyfile::CommandImpl),
+        #[cfg(feature = "with-secure-enclave")]
+        Box::new(cmd_se::CommandImpl),
+        #[cfg(feature = "with-secure-enclave")]
+        Box::new(cmd_se_generate::CommandImpl),
+        #[cfg(feature = "with-secure-enclave")]
+        Box::new(cmd_se_ecsign::CommandImpl),
+        #[cfg(feature = "with-secure-enclave")]
+        Box::new(cmd_se_ecdh::CommandImpl),
+        Box::new(cmd_ecverify::CommandImpl),
     ];
 
-    let mut features: Vec<&str> = vec![];
-    #[cfg(feature = "with-sequoia-openpgp")]
-    features.push("with-sequoia-openpgp");
+    #[allow(clippy::vec_init_then_push)]
+    let features = {
+        let mut features: Vec<&str> = vec![];
+        #[cfg(feature = "with-sequoia-openpgp")]
+        features.push("sequoia-openpgp");
+        #[cfg(feature = "with-secure-enclave")]
+        features.push("secure-enclave");
+        features
+    };
     let about = format!(
         "{}, features: [{}]",
         "Card Cli is a command tool for WebAuthn, OpenPGP, YubiKey ... smart cards",

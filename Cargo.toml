@@ -1,12 +1,13 @@
 [package]
 name = "card-cli"
-version = "1.10.8"
+version = "1.10.11"
 authors = ["Hatter Jiang <jht5945@gmail.com>"]
 edition = "2018"
 
 [features]
-default = ["with-sequoia-openpgp"]
+default = ["with-sequoia-openpgp", "with-secure-enclave"]
 with-sequoia-openpgp = ["sequoia-openpgp", "openpgp-card-sequoia"]
+with-secure-enclave = ["swift-rs"]
 
 [dependencies]
 authenticator = "0.3"
@@ -49,9 +50,14 @@ rpassword = "7.3"
 secrecy = "0.8"
 der-parser = "9.0"
 sshcerts = "0.13"
+swift-rs = { version = "1.0.7", optional = true }
+regex = "1.4.6"
 #lazy_static = "1.4.0"
 #ssh-key = "0.4.0"
 #ctap-hid-fido2 = "2.1.3"
+
+[build-dependencies]
+swift-rs = { version = "1.0.7", features = ["build"], optional = true }
 
 [patch.crates-io]
 u2f = { git = "https://github.com/jht5945/u2f-rs.git" }
