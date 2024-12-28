@@ -39,6 +39,8 @@ mod cmd_se_ecdh;
 mod cmd_se_ecsign;
 #[cfg(feature = "with-secure-enclave")]
 mod cmd_se_generate;
+#[cfg(feature = "with-secure-enclave")]
+mod cmd_se_recover;
 mod cmd_signfile;
 mod cmd_signjwt;
 mod cmd_sshagent;
@@ -133,6 +135,8 @@ fn inner_main() -> CommandError {
         Box::new(cmd_se::CommandImpl),
         #[cfg(feature = "with-secure-enclave")]
         Box::new(cmd_se_generate::CommandImpl),
+        #[cfg(feature = "with-secure-enclave")]
+        Box::new(cmd_se_recover::CommandImpl),
         #[cfg(feature = "with-secure-enclave")]
         Box::new(cmd_se_ecsign::CommandImpl),
         #[cfg(feature = "with-secure-enclave")]

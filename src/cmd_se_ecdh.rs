@@ -1,8 +1,11 @@
 use crate::keyutil::{parse_key_uri, KeyUri};
 use crate::seutil;
 use clap::{App, Arg, ArgMatches, SubCommand};
+use p256::elliptic_curve::sec1::FromEncodedPoint;
+use p256::{EncodedPoint, PublicKey};
 use rust_util::util_clap::{Command, CommandError};
 use rust_util::util_msg;
+use spki::EncodePublicKey;
 use std::collections::BTreeMap;
 
 pub struct CommandImpl;
@@ -47,15 +50,38 @@ impl Command for CommandImpl {
         let KeyUri::SecureEnclaveKey(se_key_uri) = parse_key_uri(key)?;
         debugging!("Secure enclave key URI: {:?}", se_key_uri);
 
-        let ephemeral_public_key_bytes = hex::decode(epk)?;
-        let dh =
-            seutil::secure_enclave_p256_dh(&se_key_uri.private_key, &ephemeral_public_key_bytes)?;
+        let ephemeral_public_key_der_bytes;
+        if epk.starts_with("04") {
+            let ephemeral_public_key_point_bytes = opt_result!(
+                hex::decode(epk),
+                "Decode public key point from hex failed: {}"
+            );
+            let encoded_point = opt_result!(
+                EncodedPoint::from_bytes(ephemeral_public_key_point_bytes),
+                "Parse public key point failed: {}"
+            );
+            let public_key_opt = PublicKey::from_encoded_point(&encoded_point);
+            if public_key_opt.is_none().into() {
+                return simple_error!("Parse public key failed.");
+            }
+            let public_key = public_key_opt.unwrap();
+            ephemeral_public_key_der_bytes = public_key.to_public_key_der()?.as_bytes().to_vec();
+        } else {
+            ephemeral_public_key_der_bytes =
+                opt_result!(hex::decode(epk), "Decode public key from hex failed: {}");
+        }
+
+        let dh = seutil::secure_enclave_p256_dh(
+            &se_key_uri.private_key,
+            &ephemeral_public_key_der_bytes,
+        )?;
         let dh_hex = hex::encode(&dh);
 
         if json_output {
             let mut json = BTreeMap::<&'_ str, String>::new();
-
             json.insert("shared_secret_hex", dh_hex);
+
+            println!("{}", serde_json::to_string_pretty(&json).unwrap());
         } else {
             information!("Shared secret: {}", dh_hex);
         }

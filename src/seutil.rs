@@ -8,6 +8,8 @@ swift!(fn generate_secure_enclave_p256_ecdh_keypair() -> SRString);
 swift!(fn generate_secure_enclave_p256_ecsign_keypair() -> SRString);
 swift!(fn compute_secure_enclave_p256_ecdh(private_key_base64: SRString, ephemera_public_key_base64: SRString) -> SRString);
 swift!(fn compute_secure_enclave_p256_ecsign(private_key_base64: SRString, content: SRString) -> SRString);
+swift!(fn recover_secure_enclave_p256_ecsign_public_key(private_key_base64: SRString) -> SRString);
+swift!(fn recover_secure_enclave_p256_ecdh_public_key(private_key_base64: SRString) -> SRString);
 
 pub fn is_support_se() -> bool {
     unsafe { is_support_secure_enclave() }
@@ -19,31 +21,19 @@ pub fn generate_secure_enclave_p256_keypair(sign: bool) -> XResult<(Vec<u8>, Vec
     } else {
         unsafe { generate_secure_enclave_p256_ecdh_keypair() }
     };
-    let p256_keypair_result_str = p256_keypair_result.as_str();
-    if !p256_keypair_result_str.starts_with("ok:") {
-        return simple_error!(
-            "Generate P256 in secure enclave failed: {}",
-            p256_keypair_result_str
-        );
-    }
-    let public_key_and_private_key = p256_keypair_result_str.chars().skip(3).collect::<String>();
-    let public_key_and_private_keys = public_key_and_private_key.split(',').collect::<Vec<_>>();
-    if public_key_and_private_keys.len() != 3 {
-        return simple_error!(
-            "Generate P256 in secure enclave result is bad: {}",
-            public_key_and_private_key
-        );
-    }
-    let public_key_point = opt_result!(
-        base64_decode(public_key_and_private_keys[0]),
-        "Public key point is not base64 encoded: {}"
-    );
-    let public_key_der = opt_result!(
-        base64_decode(public_key_and_private_keys[1]),
-        "Public key der is not base64 encoded: {}"
-    );
-    let private_key = public_key_and_private_keys[2].to_string();
-    Ok((public_key_point, public_key_der, private_key))
+    parse_p256_keypair_result(p256_keypair_result.as_str())
+}
+
+pub fn recover_secure_enclave_p256_public_key(
+    private_key: &str,
+    sign: bool,
+) -> XResult<(Vec<u8>, Vec<u8>, String)> {
+    let p256_keypair_result = if sign {
+        unsafe { recover_secure_enclave_p256_ecsign_public_key(SRString::from(private_key)) }
+    } else {
+        unsafe { recover_secure_enclave_p256_ecdh_public_key(SRString::from(private_key)) }
+    };
+    parse_p256_keypair_result(p256_keypair_result.as_str())
 }
 
 pub fn secure_enclave_p256_dh(
@@ -93,4 +83,31 @@ pub fn secure_enclave_p256_sign(private_key: &str, content: &[u8]) -> XResult<Ve
     let signature = signature_result_str.chars().skip(3).collect::<String>();
     debugging!("Signature: {}", &signature);
     Ok(base64_decode(&signature)?)
+}
+
+fn parse_p256_keypair_result(p256_keypair_result_str: &str) -> XResult<(Vec<u8>, Vec<u8>, String)> {
+    if !p256_keypair_result_str.starts_with("ok:") {
+        return simple_error!(
+            "Generate P256 in secure enclave failed: {}",
+            p256_keypair_result_str
+        );
+    }
+    let public_key_and_private_key = p256_keypair_result_str.chars().skip(3).collect::<String>();
+    let public_key_and_private_keys = public_key_and_private_key.split(',').collect::<Vec<_>>();
+    if public_key_and_private_keys.len() != 3 {
+        return simple_error!(
+            "Generate P256 in secure enclave result is bad: {}",
+            public_key_and_private_key
+        );
+    }
+    let public_key_point = opt_result!(
+        base64_decode(public_key_and_private_keys[0]),
+        "Public key point is not base64 encoded: {}"
+    );
+    let public_key_der = opt_result!(
+        base64_decode(public_key_and_private_keys[1]),
+        "Public key der is not base64 encoded: {}"
+    );
+    let private_key = public_key_and_private_keys[2].to_string();
+    Ok((public_key_point, public_key_der, private_key))
 }
