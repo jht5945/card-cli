@@ -19,6 +19,7 @@ impl Command for CommandImpl {
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("PIV ECDH subcommand")
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("PIV card user PIN"))
+            .arg(Arg::with_name("no-pin").long("no-pin").help("No PIN"))
             .arg(Arg::with_name("slot").short("s").long("slot").takes_value(true).help("PIV slot, e.g. 82, 83 ..."))
             .arg(Arg::with_name("public-256").long("public-256").help("Public key (P-256)"))
             .arg(Arg::with_name("public-384").long("public-384").help("Public key (P-384)"))
@@ -70,9 +71,7 @@ impl Command for CommandImpl {
         }
 
         if private {
-            let pin_opt = sub_arg_matches.value_of("pin");
-            let pin_opt = pinutil::get_pin(pin_opt);
-            let pin_opt = pin_opt.as_deref();
+            let pin_opt = pinutil::read_pin(sub_arg_matches);
 
             let slot = opt_value_result!(sub_arg_matches.value_of("slot"), "--slot must assigned, e.g. 82, 83 ...");
             let epk = opt_value_result!(sub_arg_matches.value_of("epk"), "--epk must assigned");
@@ -107,7 +106,7 @@ impl Command for CommandImpl {
                 warning!("Get slot: {} meta data failed", slot);
             }
 
-            if let Some(pin) = pin_opt {
+            if let Some(pin) = &pin_opt {
                 opt_result!(yk.verify_pin(pin.as_bytes()), "YubiKey verify pin failed: {}");
             }
 

@@ -1,11 +1,13 @@
+use clap::ArgMatches;
 use rust_util::XResult;
 use spki::{ObjectIdentifier, SubjectPublicKeyInfoOwned};
 use spki::der::{Decode, Encode};
 use x509_parser::prelude::FromDer;
 use x509_parser::public_key::RSAPublicKey;
-use yubikey::{Certificate, PinPolicy, TouchPolicy};
-use yubikey::piv::{AlgorithmId, ManagementAlgorithmId, ManagementSlotId, Origin, RetiredSlotId};
+use yubikey::{Certificate, PinPolicy, TouchPolicy, YubiKey};
+use yubikey::piv::{metadata, AlgorithmId, ManagementAlgorithmId, ManagementSlotId, Origin, RetiredSlotId};
 use yubikey::piv::SlotId;
+use crate::pinutil;
 
 const RSA: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.1");
 const ECC: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.2.1");
@@ -189,4 +191,27 @@ pub fn get_slot_id(slot: &str) -> XResult<SlotId> {
         "r20" | "95" => SlotId::Retired(RetiredSlotId::R20),
         _ => return simple_error!("Unknown slot: {}", slot),
     })
+}
+
+pub fn check_read_pin(yk: &mut YubiKey, slot_id: SlotId, sub_arg_matches: &ArgMatches) -> Option<String> {
+    if never_use_pin(yk, slot_id) {
+        None
+    } else {
+        pinutil::read_pin(sub_arg_matches)
+    }
+}
+
+pub fn never_use_pin(yk: &mut YubiKey, slot_id: SlotId) -> bool {
+    match get(yk, slot_id) {
+        None => false,
+        Some((pin_policy, _)) => pin_policy == PinPolicy::Never,
+    }
+}
+
+pub fn get(yk: &mut YubiKey, slot_id: SlotId) -> Option<(PinPolicy, TouchPolicy)> {
+    let slot_metadata = match metadata(yk, slot_id){
+        Ok(meta) => meta,
+        Err(_) => return None,
+    };
+    slot_metadata.policy
 }

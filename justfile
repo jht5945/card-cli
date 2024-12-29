@@ -5,6 +5,14 @@ _:
 install:
   cargo install --path .
 
+# build without default features
+build-simple:
+  cargo build --no-default-features
+
+# install without default features
+install-simple:
+  cargo install --no-default-features --path .
+
 # run --help
 help:
   cargo r -- --help

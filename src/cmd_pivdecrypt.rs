@@ -18,6 +18,7 @@ impl Command for CommandImpl {
         SubCommand::with_name(self.name()).about("PIV decrypt(RSA) subcommand")
             .arg(Arg::with_name("slot").short("s").long("slot").takes_value(true).help("PIV slot, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e"))
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("PIV card user PIN"))
+            .arg(Arg::with_name("no-pin").long("no-pin").help("No PIN"))
             .arg(Arg::with_name("ciphertext").long("ciphertext").short("c").takes_value(true).help("Encrypted data (HEX or Base64)"))
             .arg(Arg::with_name("stdin").long("stdin").help("Standard input (Ciphertext)"))
             .arg(Arg::with_name("json").long("json").help("JSON output"))
@@ -29,10 +30,7 @@ impl Command for CommandImpl {
 
         let slot = opt_value_result!(sub_arg_matches.value_of("slot"), "--slot must assigned, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e");
 
-        let pin_opt = sub_arg_matches.value_of("pin");
-        let pin_opt = pinutil::get_pin(pin_opt);
-        let pin_opt = pin_opt.as_deref();
-        let pin = opt_value_result!(pin_opt, "User pin must be assigned");
+        let pin_opt = pinutil::read_pin(sub_arg_matches);
 
         let encrypted_data = if let Some(ciphertext) = sub_arg_matches.value_of("ciphertext") {
             opt_result!(try_decode(ciphertext), "Decode --ciphertext failed: {}")
@@ -43,7 +41,9 @@ impl Command for CommandImpl {
         };
 
         let mut yk = opt_result!(YubiKey::open(), "YubiKey not found: {}");
-        opt_result!(yk.verify_pin(pin.as_bytes()), "YubiKey verify pin failed: {}");
+        if let Some(pin) = &pin_opt {
+            opt_result!(yk.verify_pin(pin.as_bytes()), "YubiKey verify pin failed: {}");
+        }
 
         let slot_id = pivutil::get_slot_id(slot)?;
         let decrypt_result = yubikey::piv::decrypt_data(&mut yk, &encrypted_data,

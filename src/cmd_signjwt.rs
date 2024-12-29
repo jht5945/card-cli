@@ -8,9 +8,9 @@ use rust_util::{util_msg, util_time, XResult};
 use rust_util::util_clap::{Command, CommandError};
 use serde_json::{Map, Number, Value};
 use yubikey::{Certificate, YubiKey};
-use yubikey::piv::{AlgorithmId, sign_data};
+use yubikey::piv::{AlgorithmId, sign_data, SlotId};
 
-use crate::{digest, pinutil, pivutil, rsautil, util};
+use crate::{digest, pivutil, rsautil, util};
 
 const SEPARATOR: &str = ".";
 
@@ -22,6 +22,7 @@ impl Command for CommandImpl {
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("Sign JWT subcommand")
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("PIV card user PIN"))
+            .arg(Arg::with_name("no-pin").long("no-pin").help("No PIN"))
             .arg(Arg::with_name("slot").short("s").long("slot").takes_value(true).help("PIV slot, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e"))
             .arg(Arg::with_name("key-id").short("K").long("key-id").takes_value(true).help("Header key ID"))
             .arg(Arg::with_name("claims").short("C").long("claims").takes_value(true).multiple(true).help("Claims, key:value"))
@@ -37,9 +38,6 @@ impl Command for CommandImpl {
 
         let mut json = BTreeMap::<&'_ str, String>::new();
 
-        let pin_opt = sub_arg_matches.value_of("pin");
-        let pin_opt = pinutil::get_pin(pin_opt);
-        let pin_opt = pin_opt.as_deref();
         let slot = opt_value_result!(
             sub_arg_matches.value_of("slot"), "--slot must assigned, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e");
 
@@ -98,7 +96,11 @@ impl Command for CommandImpl {
             }
         }
 
-        let token_string = sign_jwt(slot, &pin_opt, header, &payload, &jwt_claims)?;
+        let mut yk = opt_result!(YubiKey::open(), "Find YubiKey failed: {}");
+        let slot_id = opt_result!(pivutil::get_slot_id(slot), "Get slot id failed: {}");
+        let pin_opt = pivutil::check_read_pin(&mut yk, slot_id, sub_arg_matches);
+
+        let token_string = sign_jwt(&mut yk, slot_id, &pin_opt, header, &payload, &jwt_claims)?;
         success!("Singed JWT: {}", token_string);
         if json_output { json.insert("token", token_string.clone()); }
 
@@ -110,15 +112,11 @@ impl Command for CommandImpl {
 }
 
 
-fn sign_jwt(slot: &str, pin_opt: &Option<&str>, mut header: Header, payload: &Option<&str>, claims: &Map<String, Value>) -> XResult<String> {
-    let mut yk = opt_result!(YubiKey::open(), "Find YubiKey failed: {}");
-    let slot_id = opt_result!(pivutil::get_slot_id(slot), "Get slot id failed: {}");
-
+fn sign_jwt(yk: &mut YubiKey, slot_id: SlotId, pin_opt: &Option<String>, mut header: Header, payload: &Option<&str>, claims: &Map<String, Value>) -> XResult<String> {
     if let Some(pin) = pin_opt {
         opt_result!(yk.verify_pin(pin.as_bytes()), "YubiKey verify pin failed: {}");
     }
-
-    let cert = match Certificate::read(&mut yk, slot_id) {
+    let cert = match Certificate::read(yk, slot_id) {
         Ok(c) => c,
         Err(e) => return simple_error!("Read YubiKey certificate failed: {}", e),
     };
@@ -154,7 +152,7 @@ fn sign_jwt(slot: &str, pin_opt: &Option<&str>, mut header: Header, payload: &Op
     };
 
     let signed_data = opt_result!(
-        sign_data(&mut yk, &raw_in, yk_algorithm, slot_id), "Sign YubiKey failed: {}");
+        sign_data(yk, &raw_in, yk_algorithm, slot_id), "Sign YubiKey failed: {}");
 
     let signature = util::base64_encode_url_safe_no_pad(signed_data);
 

@@ -18,6 +18,7 @@ impl Command for CommandImpl {
         SubCommand::with_name(self.name()).about("PIV RSA sign(with SHA256) subcommand")
             .arg(Arg::with_name("slot").short("s").long("slot").takes_value(true).help("PIV slot, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e"))
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("PIV card user PIN"))
+            .arg(Arg::with_name("no-pin").long("no-pin").help("No PIN"))
             .arg(Arg::with_name("sha256").short("2").long("sha256").takes_value(true).help("Digest SHA256 HEX"))
             .arg(Arg::with_name("json").long("json").help("JSON output"))
     }
@@ -26,15 +27,14 @@ impl Command for CommandImpl {
         let json_output = sub_arg_matches.is_present("json");
         if json_output { util_msg::set_logger_std_out(false); }
 
-        let pin_opt = sub_arg_matches.value_of("pin");
-        let pin_opt = pinutil::get_pin(pin_opt);
-        let pin_opt = pin_opt.as_deref();
-        let pin = opt_value_result!(pin_opt, "User pin must be assigned");
+        let pin_opt = pinutil::read_pin(sub_arg_matches);
 
         let sha256_hex_opt = sub_arg_matches.value_of("sha256").map(|s| s.to_string());
 
         let mut yk = opt_result!(YubiKey::open(), "YubiKey not found: {}");
-        opt_result!(yk.verify_pin(pin.as_bytes()), "YubiKey verify pin failed: {}");
+        if let Some(pin) = &pin_opt {
+            opt_result!(yk.verify_pin(pin.as_bytes()), "YubiKey verify pin failed: {}");
+        }
 
         let slot_id = match sub_arg_matches.value_of("slot") {
             None => SlotId::Signature,

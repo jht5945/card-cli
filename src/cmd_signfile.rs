@@ -41,6 +41,7 @@ impl Command for CommandImpl {
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("PIV sign(with SHA256) subcommand")
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("PIV card user PIN"))
+            .arg(Arg::with_name("no-pin").long("no-pin").help("No PIN"))
             .arg(Arg::with_name("slot").short("s").long("slot")
                 .takes_value(true).required(true).help("PIV slot, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e"))
             .arg(Arg::with_name("file").short("f").long("file").takes_value(true).required(true).help("Input file"))
@@ -57,9 +58,7 @@ impl Command for CommandImpl {
         let comment_opt = sub_arg_matches.value_of("comment").map(ToString::to_string);
         let attributes_opt = sub_arg_matches.value_of("attributes").map(ToString::to_string);
 
-        let pin_opt = sub_arg_matches.value_of("pin");
-        let pin_opt = pinutil::get_pin(pin_opt);
-        let pin_opt = pin_opt.as_deref();
+        let pin_opt = pinutil::read_pin(sub_arg_matches);
 
         let slot = opt_value_result!(sub_arg_matches.value_of("slot"), "--slot must assigned, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e");
         // TODO read from stream not in memory
@@ -83,7 +82,7 @@ impl Command for CommandImpl {
         let algorithm_id = opt_result!(
             pivutil::get_algorithm_id_by_certificate(certificate), "Get slot key algorithm failed: {}");
         debugging!("PIV algorithm: {:?}", algorithm_id);
-        if let Some(pin) = pin_opt {
+        if let Some(pin) = &pin_opt {
             debugging!("PIN is assigned.");
             opt_result!(yk.verify_pin(pin.as_bytes()), "YubiKey verify pin failed: {}");
         }

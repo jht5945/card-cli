@@ -28,6 +28,7 @@ impl Command for CommandImpl {
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("SSH PIV sign cert subcommand")
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("PIV card user PIN"))
+            .arg(Arg::with_name("no-pin").long("no-pin").help("No PIN"))
             .arg(Arg::with_name("slot").short("s").long("slot").takes_value(true).help("PIV slot, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e"))
             .arg(Arg::with_name("key-id").short("k").long("key-id").takes_value(true).default_value("default_key_id").help("SSH user CA key id"))
             .arg(Arg::with_name("principal").short("P").long("principal").takes_value(true).default_value("root").multiple(true).help("SSH user CA principal"))
@@ -85,8 +86,7 @@ impl Command for CommandImpl {
         information!("Principals: {:?}", principals);
         information!("Validity: {} seconds", validity_u64);
 
-        let pin_opt = sub_arg_matches.value_of("pin");
-        let pin_opt = pinutil::get_pin(pin_opt);
+        let pin_opt = pinutil::read_pin(sub_arg_matches);
 
         let cert_der = find_cert(&mut yk, slot_id)?;
         let ca_ssh_pub_key = opt_result!(extract_ssh_pubkey_from_x509_certificate(&cert_der), "Extract SSH public key failed: {}");

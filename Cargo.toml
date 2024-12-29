@@ -1,6 +1,6 @@
 [package]
 name = "card-cli"
-version = "1.10.12"
+version = "1.10.14"
 authors = ["Hatter Jiang <jht5945@gmail.com>"]
 edition = "2018"
 

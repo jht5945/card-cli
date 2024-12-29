@@ -4,11 +4,11 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use rust_util::util_clap::{Command, CommandError};
 use rust_util::util_msg;
 use x509_parser::nom::AsBytes;
-use yubikey::piv::{AlgorithmId, ManagementAlgorithmId, metadata, sign_data};
+use yubikey::piv::{metadata, sign_data, AlgorithmId, ManagementAlgorithmId};
 use yubikey::YubiKey;
 
-use crate::{argsutil, pinutil, pivutil};
 use crate::util::base64_encode;
+use crate::{argsutil, pivutil};
 
 pub struct CommandImpl;
 
@@ -18,6 +18,7 @@ impl Command for CommandImpl {
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("PIV EC sign(with SHA256) subcommand")
             .arg(Arg::with_name("pin").short("p").long("pin").takes_value(true).help("PIV card user PIN"))
+            .arg(Arg::with_name("no-pin").long("no-pin").help("No PIN"))
             .arg(Arg::with_name("slot").short("s").long("slot").takes_value(true).help("PIV slot, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e"))
             .arg(Arg::with_name("algorithm").short("a").long("algorithm").takes_value(true).help("Algorithm, p256 or p384"))
             .arg(Arg::with_name("file").short("f").long("file").takes_value(true).help("Input file"))
@@ -32,10 +33,6 @@ impl Command for CommandImpl {
 
         let mut json = BTreeMap::<&'_ str, String>::new();
 
-        let pin_opt = sub_arg_matches.value_of("pin");
-        let pin_opt = pinutil::get_pin(pin_opt);
-        let pin_opt = pin_opt.as_deref();
-
         let slot = opt_value_result!(sub_arg_matches.value_of("slot"), "--slot must assigned, e.g. 82, 83 ... 95, 9a, 9c, 9d, 9e");
         let hash_bytes = argsutil::get_sha256_digest_or_hash(sub_arg_matches)?;
         let (algorithm, algorithm_str) = match sub_arg_matches.value_of("algorithm") {
@@ -46,8 +43,9 @@ impl Command for CommandImpl {
 
         let mut yk = opt_result!(YubiKey::open(), "YubiKey not found: {}");
         let slot_id = pivutil::get_slot_id(slot)?;
+        let pin_opt = pivutil::check_read_pin(&mut yk, slot_id, sub_arg_matches);
 
-        if let Some(pin) = pin_opt {
+        if let Some(pin) = &pin_opt {
             opt_result!(yk.verify_pin(pin.as_bytes()), "YubiKey verify pin failed: {}");
         }
 

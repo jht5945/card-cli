@@ -1,11 +1,20 @@
 use std::{env, fs};
-
+use clap::ArgMatches;
 use pinentry::PassphraseInput;
 use secrecy::ExposeSecret;
 
 const PIN_ENTRY_ENV: &str = "PIN_ENTRY_CMD";
 const PIN_ENTRY_1: &str = "/usr/local/MacGPG2/libexec/pinentry-mac.app/Contents/MacOS/pinentry-mac";
 const PIN_ENTRY_DEFAULT: &str = "pinentry";
+
+pub fn read_pin(sub_arg_matches: &ArgMatches) -> Option<String> {
+     if sub_arg_matches.is_present("no-pin") {
+        None
+    } else {
+        let pin_opt = sub_arg_matches.value_of("pin");
+        get_pin(pin_opt)
+    }
+}
 
 pub fn get_pin(pin_opt: Option<&str>) -> Option<String> {
     if let Some(pin) = pin_opt {
