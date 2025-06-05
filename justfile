@@ -1,6 +1,10 @@
 _:
   @just --list
 
+# publish
+publish:
+  cargo publish --registry crates-io
+
 # install card-cli
 install:
   cargo install --path .

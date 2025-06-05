@@ -6,68 +6,84 @@ use rust_util::util_clap::{Command, CommandError};
 
 mod argsutil;
 mod cmd_chall;
-mod cmd_challconfig;
-mod cmd_ecverify;
+mod cmd_chall_config;
+mod cmd_convert_jwk_to_pem;
+mod cmd_convert_pem_to_jwk;
+mod cmd_ec_verify;
+mod cmd_external_ecdh;
+mod cmd_external_public_key;
+mod cmd_external_sign;
+mod cmd_external_spec;
+mod cmd_file_sign;
+mod cmd_file_verify;
+mod cmd_hmac_decrypt;
+mod cmd_hmac_encrypt;
 mod cmd_hmac_sha1;
+mod cmd_keypair_generate;
+mod cmd_keypair_keychain_export;
+mod cmd_keypair_keychain_import;
 mod cmd_list;
+mod cmd_parseecdsasignature;
 #[cfg(feature = "with-sequoia-openpgp")]
 mod cmd_pgp;
-mod cmd_pgpageaddress;
-mod cmd_pgpcardadmin;
-mod cmd_pgpcarddecrypt;
-mod cmd_pgpcardlist;
+mod cmd_pgp_age_address;
+mod cmd_pgp_card_admin;
+mod cmd_pgp_card_decrypt;
+mod cmd_pgp_card_list;
 #[cfg(feature = "with-sequoia-openpgp")]
-mod cmd_pgpcardmake;
-mod cmd_pgpcardsign;
+mod cmd_pgp_card_make;
+mod cmd_pgp_card_sign;
 mod cmd_piv;
-mod cmd_pivdecrypt;
-mod cmd_pivecdh;
-mod cmd_pivecsign;
-mod cmd_pivgenerate;
-mod cmd_pivmeta;
-mod cmd_pivrsasign;
-mod cmd_pivsummary;
-mod cmd_pivverify;
-mod cmd_rsadecrypt;
-mod cmd_rsaencrypt;
-mod cmd_rsaverify;
-#[cfg(feature = "with-secure-enclave")]
+mod cmd_piv_decrypt;
+mod cmd_piv_ecdh;
+mod cmd_piv_ecsign;
+mod cmd_piv_generate;
+mod cmd_piv_meta;
+mod cmd_piv_rsasign;
+mod cmd_piv_summary;
+mod cmd_piv_verify;
+mod cmd_rsa_decrypt;
+mod cmd_rsa_encrypt;
+mod cmd_rsa_verify;
 mod cmd_se;
-#[cfg(feature = "with-secure-enclave")]
 mod cmd_se_ecdh;
-#[cfg(feature = "with-secure-enclave")]
 mod cmd_se_ecsign;
-#[cfg(feature = "with-secure-enclave")]
 mod cmd_se_generate;
-#[cfg(feature = "with-secure-enclave")]
 mod cmd_se_recover;
-mod cmd_signfile;
-mod cmd_signjwt;
-mod cmd_sshagent;
-mod cmd_sshparse;
-mod cmd_sshparsesign;
-mod cmd_sshpivcert;
-mod cmd_sshpivsign;
-mod cmd_sshpubkey;
-mod cmd_u2fregister;
-mod cmd_u2fsign;
-mod cmd_verifyfile;
-mod digest;
+mod cmd_sign_jwt;
+mod cmd_sign_jwt_piv;
+mod cmd_sign_jwt_se;
+mod cmd_sign_jwt_soft;
+mod cmd_ssh_agent;
+mod cmd_ssh_agent_gpg;
+mod cmd_ssh_parse;
+mod cmd_ssh_parse_sign;
+mod cmd_ssh_piv_cert;
+mod cmd_ssh_piv_sign;
+mod cmd_ssh_pub_key;
+mod cmd_u2f_register;
+mod cmd_u2f_sign;
+mod cmdutil;
+mod digestutil;
 mod ecdhutil;
 mod ecdsautil;
-mod fido;
+mod ecutil;
+mod fidoutil;
 mod hmacutil;
+mod keychain;
 mod keyutil;
+mod pbeutil;
 mod pgpcardutil;
 mod pinutil;
 mod pivutil;
 mod pkiutil;
 mod rsautil;
-#[cfg(feature = "with-secure-enclave")]
 mod seutil;
 mod signfile;
 mod sshutil;
 mod util;
+mod yubikeyutil;
+mod cmd_yubikey;
 
 pub struct DefaultCommandImpl;
 
@@ -98,50 +114,62 @@ fn inner_main() -> CommandError {
         Box::new(cmd_list::CommandImpl),
         Box::new(cmd_chall::CommandImpl),
         Box::new(cmd_hmac_sha1::CommandImpl),
-        Box::new(cmd_challconfig::CommandImpl),
-        Box::new(cmd_rsaencrypt::CommandImpl),
-        Box::new(cmd_rsadecrypt::CommandImpl),
-        Box::new(cmd_rsaverify::CommandImpl),
+        Box::new(cmd_hmac_encrypt::CommandImpl),
+        Box::new(cmd_hmac_decrypt::CommandImpl),
+        Box::new(cmd_chall_config::CommandImpl),
+        Box::new(cmd_rsa_encrypt::CommandImpl),
+        Box::new(cmd_rsa_decrypt::CommandImpl),
+        Box::new(cmd_rsa_verify::CommandImpl),
         #[cfg(feature = "with-sequoia-openpgp")]
         Box::new(cmd_pgp::CommandImpl),
-        Box::new(cmd_pgpcardadmin::CommandImpl),
-        Box::new(cmd_pgpcardlist::CommandImpl),
-        Box::new(cmd_pgpcardsign::CommandImpl),
-        Box::new(cmd_pgpcarddecrypt::CommandImpl),
+        Box::new(cmd_pgp_card_admin::CommandImpl),
+        Box::new(cmd_pgp_card_list::CommandImpl),
+        Box::new(cmd_pgp_card_sign::CommandImpl),
+        Box::new(cmd_pgp_card_decrypt::CommandImpl),
         #[cfg(feature = "with-sequoia-openpgp")]
-        Box::new(cmd_pgpcardmake::CommandImpl),
+        Box::new(cmd_pgp_card_make::CommandImpl),
         Box::new(cmd_piv::CommandImpl),
-        Box::new(cmd_pivsummary::CommandImpl),
-        Box::new(cmd_pivmeta::CommandImpl),
-        Box::new(cmd_pivverify::CommandImpl),
-        Box::new(cmd_pivrsasign::CommandImpl),
-        Box::new(cmd_pivecdh::CommandImpl),
-        Box::new(cmd_pivecsign::CommandImpl),
-        Box::new(cmd_pivdecrypt::CommandImpl),
-        Box::new(cmd_pivgenerate::CommandImpl),
-        Box::new(cmd_u2fregister::CommandImpl),
-        Box::new(cmd_u2fsign::CommandImpl),
-        Box::new(cmd_sshagent::CommandImpl),
-        Box::new(cmd_sshparsesign::CommandImpl),
-        Box::new(cmd_sshpivsign::CommandImpl),
-        Box::new(cmd_sshpivcert::CommandImpl),
-        Box::new(cmd_sshpubkey::CommandImpl),
-        Box::new(cmd_sshparse::CommandImpl),
-        Box::new(cmd_pgpageaddress::CommandImpl),
-        Box::new(cmd_signjwt::CommandImpl),
-        Box::new(cmd_signfile::CommandImpl),
-        Box::new(cmd_verifyfile::CommandImpl),
-        #[cfg(feature = "with-secure-enclave")]
+        Box::new(cmd_piv_summary::CommandImpl),
+        Box::new(cmd_piv_meta::CommandImpl),
+        Box::new(cmd_piv_verify::CommandImpl),
+        Box::new(cmd_piv_rsasign::CommandImpl),
+        Box::new(cmd_piv_ecdh::CommandImpl),
+        Box::new(cmd_piv_ecsign::CommandImpl),
+        Box::new(cmd_piv_decrypt::CommandImpl),
+        Box::new(cmd_piv_generate::CommandImpl),
+        Box::new(cmd_u2f_register::CommandImpl),
+        Box::new(cmd_u2f_sign::CommandImpl),
+        Box::new(cmd_ssh_agent::CommandImpl),
+        Box::new(cmd_ssh_agent_gpg::CommandImpl),
+        Box::new(cmd_ssh_parse_sign::CommandImpl),
+        Box::new(cmd_ssh_piv_sign::CommandImpl),
+        Box::new(cmd_ssh_piv_cert::CommandImpl),
+        Box::new(cmd_ssh_pub_key::CommandImpl),
+        Box::new(cmd_ssh_parse::CommandImpl),
+        Box::new(cmd_pgp_age_address::CommandImpl),
+        Box::new(cmd_sign_jwt_piv::CommandImpl),
+        Box::new(cmd_sign_jwt_soft::CommandImpl),
+        Box::new(cmd_sign_jwt_se::CommandImpl),
+        Box::new(cmd_sign_jwt::CommandImpl),
+        Box::new(cmd_file_sign::CommandImpl),
+        Box::new(cmd_file_verify::CommandImpl),
         Box::new(cmd_se::CommandImpl),
-        #[cfg(feature = "with-secure-enclave")]
         Box::new(cmd_se_generate::CommandImpl),
-        #[cfg(feature = "with-secure-enclave")]
         Box::new(cmd_se_recover::CommandImpl),
-        #[cfg(feature = "with-secure-enclave")]
         Box::new(cmd_se_ecsign::CommandImpl),
-        #[cfg(feature = "with-secure-enclave")]
         Box::new(cmd_se_ecdh::CommandImpl),
-        Box::new(cmd_ecverify::CommandImpl),
+        Box::new(cmd_ec_verify::CommandImpl),
+        Box::new(cmd_parseecdsasignature::CommandImpl),
+        Box::new(cmd_keypair_generate::CommandImpl),
+        Box::new(cmd_keypair_keychain_import::CommandImpl),
+        Box::new(cmd_keypair_keychain_export::CommandImpl),
+        Box::new(cmd_convert_pem_to_jwk::CommandImpl),
+        Box::new(cmd_convert_jwk_to_pem::CommandImpl),
+        Box::new(cmd_external_spec::CommandImpl),
+        Box::new(cmd_external_public_key::CommandImpl),
+        Box::new(cmd_external_sign::CommandImpl),
+        Box::new(cmd_external_ecdh::CommandImpl),
+        Box::new(cmd_yubikey::CommandImpl),
     ];
 
     #[allow(clippy::vec_init_then_push)]
@@ -149,8 +177,6 @@ fn inner_main() -> CommandError {
         let mut features: Vec<&str> = vec![];
         #[cfg(feature = "with-sequoia-openpgp")]
         features.push("sequoia-openpgp");
-        #[cfg(feature = "with-secure-enclave")]
-        features.push("secure-enclave");
         features
     };
     let about = format!(

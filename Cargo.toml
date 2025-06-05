@@ -1,13 +1,16 @@
 [package]
 name = "card-cli"
-version = "1.10.14"
+version = "1.13.12"
 authors = ["Hatter Jiang <jht5945@gmail.com>"]
 edition = "2018"
 
+description = "FIDO(U2F, WebAuthn), YubiKey, OpenPGP command line tool"
+license = "MIT OR Apache-2.0"
+repository = "https://git.hatter.ink/hatter/card-cli"
+
 [features]
-default = ["with-sequoia-openpgp", "with-secure-enclave"]
+default = ["with-sequoia-openpgp"]
 with-sequoia-openpgp = ["sequoia-openpgp", "openpgp-card-sequoia"]
-with-secure-enclave = ["swift-rs"]
 
 [dependencies]
 authenticator = "0.3"
@@ -21,7 +24,6 @@ base64 = "0.21"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 hex = "0.4"
-u2f = "0.2"
 openpgp-card = "0.3"
 openpgp-card-pcsc = "0.3"
 openpgp-card-sequoia = { version = "0.1", optional = true }
@@ -36,8 +38,9 @@ yubico_manager = "0.9"
 x509 = "0.2"
 x509-parser = { version = "0.15", features = ["verify"] }
 ssh-agent = { version = "0.2", features = ["agent"] }
-p256 = { version = "0.13", features = ["pem", "ecdh"] }
-p384 = { version = "0.13", features = ["pem", "ecdh"] }
+p256 = { version = "0.13", features = ["pem", "ecdh", "ecdsa", "jwk"] }
+p384 = { version = "0.13", features = ["pem", "ecdh", "ecdsa", "jwk"] }
+p521 = { version = "0.13", features = ["pem", "ecdh", "ecdsa", "jwk"] }
 spki = { version = "0.7", features = ["pem"] }
 tabled = "0.14"
 env_logger = "0.10"
@@ -50,14 +53,18 @@ rpassword = "7.3"
 secrecy = "0.8"
 der-parser = "9.0"
 sshcerts = "0.13"
-swift-rs = { version = "1.0.7", optional = true }
 regex = "1.4.6"
+aes-gcm-stream = "0.2"
+swift-secure-enclave-tool-rs = "1.0"
+u2f-hatter-fork = "0.2"
+security-framework = { version = "3.0", features = ["OSX_10_15"] }
+rsa = "0.9.8"
+which = "7.0.3"
+percent-encoding = "2.3.1"
+external-command-rs = "0.1.1"
+ssh-agent-lib = { version =  "0.5.1" }
+ssh-key = { version = "0.6", features = ["ecdsa", "alloc"] }
+tokio = "1.45.1"
+ssh-encoding = { version = "0.2.0", features = ["alloc"] }
 #lazy_static = "1.4.0"
-#ssh-key = "0.4.0"
 #ctap-hid-fido2 = "2.1.3"
-
-[build-dependencies]
-swift-rs = { version = "1.0.7", features = ["build"], optional = true }
-
-[patch.crates-io]
-u2f = { git = "https://github.com/jht5945/u2f-rs.git" }

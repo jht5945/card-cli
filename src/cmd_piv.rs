@@ -10,7 +10,7 @@ use spki::der::Encode;
 use x509_parser::parse_x509_certificate;
 use yubikey::{Certificate, YubiKey};
 use yubikey::piv::SlotId;
-
+use crate::{cmdutil, yubikeyutil};
 use crate::pivutil::get_algorithm_id;
 use crate::pkiutil::{bytes_to_pem, get_pki_algorithm};
 
@@ -23,6 +23,7 @@ impl Command for CommandImpl {
         SubCommand::with_name(self.name()).about("PIV subcommand")
             .arg(Arg::with_name("detail").long("detail").help("Detail output"))
             .arg(Arg::with_name("show-config").long("show-config").help("Show config output"))
+            .arg(cmdutil::build_serial_arg())
         // .arg(Arg::with_name("json").long("json").help("JSON output"))
     }
 
@@ -30,7 +31,7 @@ impl Command for CommandImpl {
         let detail_output = sub_arg_matches.is_present("detail");
         let show_config = sub_arg_matches.is_present("show-config");
 
-        let mut yk = opt_result!(YubiKey::open(), "YubiKey not found: {}");
+        let mut yk = yubikeyutil::open_yubikey_with_args(sub_arg_matches)?;
         success!("Name: {}", yk.name());
         information!("Version: {}", yk.version());
         information!("Serial: {}", yk.serial());

@@ -247,6 +247,10 @@ SSH to server:
 ssh -i id_user root@example.com
 ```
 
+<br>
+
+> `external_*` subcommands follow &lt;&lt;Cryptography external command specification&gt;&gt;<br>
+> Specification: https://openwebstandard.org/rfc1
 
 <br><br>
 

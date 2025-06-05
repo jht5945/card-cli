@@ -21,7 +21,7 @@ impl Command for CommandImpl {
             .arg(Arg::with_name("in").short("i").long("in").takes_value(true).help("File input, *.pgp or *.asc"))
             .arg(Arg::with_name("detail").long("detail").help("Detail output"))
             .arg(Arg::with_name("verbose").long("verbose").help("Verbose output"))
-            .arg(Arg::with_name("json").long("json").help("JSON output"))
+            // .arg(Arg::with_name("json").long("json").help("JSON output"))
     }
 
     fn run(&self, _arg_matches: &ArgMatches, sub_arg_matches: &ArgMatches) -> CommandError {

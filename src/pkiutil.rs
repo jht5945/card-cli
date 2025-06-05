@@ -7,7 +7,7 @@ use rust_util::XResult;
 use sequoia_openpgp::crypto::mpi::PublicKey;
 use x509_parser::x509::AlgorithmIdentifier;
 
-use crate::digest::sha256_bytes;
+use crate::digestutil::sha256_bytes;
 
 #[derive(Clone, Copy, Debug)]
 pub enum PkiAlgorithm {

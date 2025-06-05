@@ -1,8 +1,65 @@
+use std::collections::HashMap;
+use ecdsa::elliptic_curve::rand_core::OsRng;
 use openssl::bn::{BigNum, BigNumContext};
 use openssl::pkey::PKey;
 use openssl::rsa::{Padding, Rsa};
+use rsa::{Pkcs1v15Sign, RsaPrivateKey, RsaPublicKey};
 use rust_util::{util_msg, XResult};
 use rust_util::util_msg::MessageType;
+use spki::DecodePublicKey;
+use rsa::pkcs1::DecodeRsaPublicKey;
+use rsa::traits::PublicKeyParts;
+use spki::EncodePublicKey;
+use rsa::pkcs1::LineEnding;
+use rsa::pkcs8::EncodePrivateKey;
+use sha2::{Sha256, Sha384, Sha512};
+use crate::digestutil;
+use crate::util::{base64_decode, base64_encode};
+
+pub enum RsaSignAlgorithm {
+    Rs256,
+    Rs384,
+    Rs512,
+}
+
+impl RsaSignAlgorithm {
+    pub fn from_str(alg: &str) -> Option<RsaSignAlgorithm> {
+        match alg {
+            "RS256" => Some(RsaSignAlgorithm::Rs256),
+            "RS384" => Some(RsaSignAlgorithm::Rs384),
+            "RS512" => Some(RsaSignAlgorithm::Rs512),
+            _ => None
+        }
+    }
+}
+
+pub fn sign(rsa_private_key: &RsaPrivateKey, rsa_sign_algorithm: RsaSignAlgorithm, message: &[u8]) -> XResult<Vec<u8>> {
+    match rsa_sign_algorithm {
+        RsaSignAlgorithm::Rs256 => {
+            let raw_in = digestutil::sha256_bytes(&message);
+            Ok(rsa_private_key.sign(Pkcs1v15Sign::new::<Sha256>(), &raw_in)?)
+        }
+        RsaSignAlgorithm::Rs384 => {
+            let raw_in = digestutil::sha384_bytes(&message);
+            Ok(rsa_private_key.sign(Pkcs1v15Sign::new::<Sha384>(), &raw_in)?)
+        }
+        RsaSignAlgorithm::Rs512 => {
+            let raw_in = digestutil::sha512_bytes(&message);
+            Ok(rsa_private_key.sign(Pkcs1v15Sign::new::<Sha512>(), &raw_in)?)
+        }
+    }
+}
+
+pub fn generate_rsa_keypair(bit_size: usize) -> XResult<(String, String, String, Vec<u8>, String)> {
+    let rsa_private_key = opt_result!(RsaPrivateKey::new(&mut OsRng, bit_size), "Generate RSA private key failed: {}");
+    let rsa_public_key = rsa_private_key.to_public_key();
+    let secret_key_der_base64 = base64_encode(rsa_private_key.to_pkcs8_der()?.as_bytes());
+    let secret_key_pem = rsa_private_key.to_pkcs8_pem(LineEnding::LF)?.to_string();
+    let public_key_pem = rsa_public_key.to_public_key_pem(LineEnding::LF)?;
+    let public_key_der = rsa_public_key.to_public_key_der()?.to_vec();
+    let jwk_ec_key = rsa_public_key_to_jwk(&rsa_public_key)?;
+    Ok((secret_key_der_base64, secret_key_pem, public_key_pem, public_key_der, jwk_ec_key))
+}
 
 #[derive(Debug)]
 pub struct RsaCrt {
@@ -150,4 +207,44 @@ fn pkcs1_padding_for_sign(bs: &[u8], bit_len: usize) -> XResult<Vec<u8>> {
     output.push(0x00);
     output.extend_from_slice(bs);
     Ok(output)
+}
+
+pub fn convert_rsa_to_jwk(public_key: &str) -> XResult<String> {
+    let rsa_public_key = try_parse_rsa(public_key)?;
+    rsa_public_key_to_jwk(&rsa_public_key)
+}
+
+pub fn rsa_public_key_to_jwk(rsa_public_key: &RsaPublicKey) -> XResult<String> {
+    let e_bytes = rsa_public_key.e().to_bytes_be();
+    let n_bytes = rsa_public_key.n().to_bytes_be();
+
+    let mut jwk = HashMap::new();
+    jwk.insert("kty", "RSA".to_string());
+    jwk.insert("n", base64_encode(&n_bytes));
+    jwk.insert("e", base64_encode(&e_bytes));
+
+    Ok(serde_json::to_string(&jwk).unwrap())
+}
+
+pub fn try_parse_rsa(public_key: &str) -> XResult<RsaPublicKey> {
+    debugging!("Try parse RSA public key PEM.");
+    // parse RSA public key PEM not works? why?
+    if let Ok(rsa_public_key) = RsaPublicKey::from_public_key_pem(public_key) {
+        return Ok(rsa_public_key);
+    }
+    debugging!("Try parse RSA PKCS#1 public key PEM.");
+    if let Ok(rsa_public_key) = RsaPublicKey::from_pkcs1_pem(public_key) {
+        return Ok(rsa_public_key);
+    }
+    if let Ok(public_key_der) = base64_decode(public_key) {
+        debugging!("Try parse RSA public key DER.");
+        if let Ok(rsa_public_key) = RsaPublicKey::from_public_key_der(&public_key_der) {
+            return Ok(rsa_public_key);
+        }
+        debugging!("Try parse RSA PKCS#1 public key DER.");
+        if let Ok(rsa_public_key) = RsaPublicKey::from_pkcs1_der(&public_key_der) {
+            return Ok(rsa_public_key);
+        }
+    }
+    simple_error!("Invalid RSA public key.")
 }

@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, SubCommand};
 use rust_util::util_clap::{Command, CommandError};
-use rust_util::util_msg;
-use yubikey::YubiKey;
+use serde_json::Value;
+use crate::{cmdutil, util, yubikeyutil};
 
 pub struct CommandImpl;
 
@@ -12,34 +12,37 @@ impl Command for CommandImpl {
 
     fn subcommand<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name(self.name()).about("YubiKey list")
-            .arg(Arg::with_name("json").long("json").help("JSON output"))
+            .arg(cmdutil::build_json_arg())
+            .arg(cmdutil::build_serial_arg())
     }
 
     fn run(&self, _arg_matches: &ArgMatches, sub_arg_matches: &ArgMatches) -> CommandError {
-        let json_output = sub_arg_matches.is_present("json");
-        if json_output { util_msg::set_logger_std_out(false); }
+        let json_output = cmdutil::check_json_output(sub_arg_matches);
 
-        let mut yk = opt_result!(YubiKey::open(), "YubiKey not found: {}");
+        let mut yk = yubikeyutil::open_yubikey_with_args(sub_arg_matches)?;
 
         if json_output {
-            let mut json = BTreeMap::<&'_ str, String>::new();
-            json.insert("name", yk.name().to_string());
-            json.insert("version", yk.version().to_string());
-            json.insert("serial", yk.serial().0.to_string());
+            let mut json = BTreeMap::<&'_ str, Value>::new();
+            json.insert("name", yk.name().into());
+            json.insert("version", yk.version().to_string().into());
+            json.insert("serial", yk.serial().0.into());
             if let Ok(pin_retries) = yk.get_pin_retries() {
-                json.insert("pin_retries", pin_retries.to_string());
+                json.insert("pin_retries", pin_retries.into());
             }
             if let Ok(chuid) = yk.chuid() {
-                json.insert("chuid", chuid.to_string());
+                json.insert("chuid", chuid.to_string().into());
             }
             if let Ok(ccuid) = yk.cccid() {
-                json.insert("ccuid", ccuid.to_string());
+                json.insert("ccuid", ccuid.to_string().into());
             }
             if let Ok(piv_keys) = yk.piv_keys() {
-                json.insert("keys", piv_keys.iter().map(|k| format!("{}", k.slot())).collect::<Vec<_>>().join(", "));
+                let key_list = piv_keys.iter().map(|k| Value::String(format!("{}", k.slot()))).collect::<Vec<_>>();
+                json.insert("key_list", key_list.into());
+                let keys = piv_keys.iter().map(|k| format!("{}", k.slot())).collect::<Vec<_>>().join(", ");
+                json.insert("keys", keys.into());
             }
 
-            println!("{}", serde_json::to_string_pretty(&json).expect("Convert to JSON failed!"));
+            util::print_pretty_json(&json);
         } else {
             success!("Name: {}", yk.name());
             success!("Version: {}", yk.version());

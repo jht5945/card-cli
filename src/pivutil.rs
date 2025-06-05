@@ -1,4 +1,5 @@
 use clap::ArgMatches;
+use jwt::AlgorithmType;
 use rust_util::XResult;
 use spki::{ObjectIdentifier, SubjectPublicKeyInfoOwned};
 use spki::der::{Decode, Encode};
@@ -56,6 +57,32 @@ pub trait ToStr {
     fn to_str(&self) -> &str;
 }
 
+pub trait FromStr {
+    fn from_str(s: &str) -> Option<Self>
+    where
+        Self: Sized;
+}
+
+impl ToStr for AlgorithmType {
+    fn to_str(&self) -> &str {
+        match self {
+            AlgorithmType::Hs256 => "HS256",
+            AlgorithmType::Hs384 => "HS384",
+            AlgorithmType::Hs512 => "HS512",
+            AlgorithmType::Rs256 => "RS256",
+            AlgorithmType::Rs384 => "RS384",
+            AlgorithmType::Rs512 => "RS512",
+            AlgorithmType::Es256 => "ES256",
+            AlgorithmType::Es384 => "ES384",
+            AlgorithmType::Es512 => "ES512",
+            AlgorithmType::Ps256 => "PS256",
+            AlgorithmType::Ps384 => "PS384",
+            AlgorithmType::Ps512 => "PS512",
+            AlgorithmType::None => "NONE",
+        }
+    }
+}
+
 impl ToStr for PinPolicy {
     fn to_str(&self) -> &str {
         match self {
@@ -74,6 +101,21 @@ impl ToStr for TouchPolicy {
             TouchPolicy::Never => "never",
             TouchPolicy::Always => "always",
             TouchPolicy::Cached => "cached",
+        }
+    }
+}
+
+impl FromStr for AlgorithmId {
+    fn from_str(s: &str) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        match s {
+            "rsa1024" => Some(AlgorithmId::Rsa1024),
+            "rsa2048" => Some(AlgorithmId::Rsa2048),
+            "p256" => Some(AlgorithmId::EccP256),
+            "p384" => Some(AlgorithmId::EccP384),
+            _ => None,
         }
     }
 }
@@ -169,6 +211,7 @@ pub fn get_slot_id(slot: &str) -> XResult<SlotId> {
         "9c" | "sign" | "signature" => SlotId::Signature,
         "9d" | "keym" | "keymanagement" => SlotId::KeyManagement,
         "9e" | "card" | "cardauthentication" => SlotId::CardAuthentication,
+        "f9" | "attest" | "attestation" => SlotId::Attestation,
         "r1" | "82" => SlotId::Retired(RetiredSlotId::R1),
         "r2" | "83" => SlotId::Retired(RetiredSlotId::R2),
         "r3" | "84" => SlotId::Retired(RetiredSlotId::R3),
@@ -191,6 +234,54 @@ pub fn get_slot_id(slot: &str) -> XResult<SlotId> {
         "r20" | "95" => SlotId::Retired(RetiredSlotId::R20),
         _ => return simple_error!("Unknown slot: {}", slot),
     })
+}
+
+impl FromStr for SlotId {
+    fn from_str(s: &str) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        get_slot_id(s).ok()
+    }
+}
+
+impl ToStr for SlotId {
+    fn to_str(&self) -> &str {
+        match self {
+            SlotId::Authentication => "authentication",
+            SlotId::Signature => "signature",
+            SlotId::KeyManagement => "keymanagement",
+            SlotId::CardAuthentication => "cardauthentication",
+            SlotId::Retired(retried) => match retried {
+                RetiredSlotId::R1 => "r1",
+                RetiredSlotId::R2 => "r2",
+                RetiredSlotId::R3 => "r3",
+                RetiredSlotId::R4 => "r4",
+                RetiredSlotId::R5 => "r5",
+                RetiredSlotId::R6 => "r6",
+                RetiredSlotId::R7 => "r7",
+                RetiredSlotId::R8 => "r8",
+                RetiredSlotId::R9 => "r9",
+                RetiredSlotId::R10 => "r10",
+                RetiredSlotId::R11 => "r11",
+                RetiredSlotId::R12 => "r12",
+                RetiredSlotId::R13 => "r13",
+                RetiredSlotId::R14 => "r14",
+                RetiredSlotId::R15 => "r15",
+                RetiredSlotId::R16 => "r16",
+                RetiredSlotId::R17 => "r17",
+                RetiredSlotId::R18 => "r18",
+                RetiredSlotId::R19 => "r19",
+                RetiredSlotId::R20 => "r20",
+            }
+            SlotId::Attestation => "attestation",
+            SlotId::Management(management) => match management {
+                ManagementSlotId::Pin => "pin",
+                ManagementSlotId::Puk => "puk",
+                ManagementSlotId::Management => "management",
+            }
+        }
+    }
 }
 
 pub fn check_read_pin(yk: &mut YubiKey, slot_id: SlotId, sub_arg_matches: &ArgMatches) -> Option<String> {
